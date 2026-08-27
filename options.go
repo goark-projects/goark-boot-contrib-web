@@ -1,0 +1,158 @@
+package gbcweb
+
+import (
+	"strings"
+
+	"goark.dev/arkarta/servlet"
+	servletcontainer "goark.dev/arkarta/servlet/container"
+	arkweb "goark.dev/arkarta/web"
+	gbcarkhos "goark.dev/gbc-arkhos"
+	coreenv "goark.dev/goark/core/env"
+	arkerrors "goark.dev/goark/errors"
+)
+
+// Option 定制 Web 自动配置。
+type Option func(*settings) error
+
+type settings struct {
+	applicationName   string
+	contextPath       string
+	mappingPattern    string
+	routerOptions     []arkweb.Option
+	webAppOptions     []servlet.WebAppOption
+	deploymentOptions []servletcontainer.DeploymentOption
+	arkhosOptions     []gbcarkhos.Option
+}
+
+// WithApplicationName 设置 Web 应用名称。
+func WithApplicationName(name string) Option {
+	return func(config *settings) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return arkerrors.New(arkerrors.CodeInvalidArgument, "web application name is empty")
+		}
+		config.applicationName = name
+		return nil
+	}
+}
+
+// WithContextPath 设置 Servlet 上下文路径。
+func WithContextPath(path string) Option {
+	return func(config *settings) error {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			path = DefaultContextPath
+		}
+		if !strings.HasPrefix(path, "/") {
+			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "web context path %q must start with /", path)
+		}
+		config.contextPath = path
+		return nil
+	}
+}
+
+// WithMappingPattern 设置 Servlet 映射模式。
+func WithMappingPattern(pattern string) Option {
+	return func(config *settings) error {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			pattern = DefaultMappingPattern
+		}
+		config.mappingPattern = pattern
+		return nil
+	}
+}
+
+// WithRouterOptions 追加 Arkarta Web Router 选项。
+func WithRouterOptions(options ...arkweb.Option) Option {
+	copied := append([]arkweb.Option(nil), options...)
+	return func(config *settings) error {
+		for _, option := range copied {
+			if option != nil {
+				config.routerOptions = append(config.routerOptions, option)
+			}
+		}
+		return nil
+	}
+}
+
+// WithWebAppOptions 追加 Arkarta Servlet WebApp 选项。
+func WithWebAppOptions(options ...servlet.WebAppOption) Option {
+	copied := append([]servlet.WebAppOption(nil), options...)
+	return func(config *settings) error {
+		for _, option := range copied {
+			if option != nil {
+				config.webAppOptions = append(config.webAppOptions, option)
+			}
+		}
+		return nil
+	}
+}
+
+// WithDeploymentOptions 追加 Arkarta Servlet 部署选项。
+func WithDeploymentOptions(options ...servletcontainer.DeploymentOption) Option {
+	copied := append([]servletcontainer.DeploymentOption(nil), options...)
+	return func(config *settings) error {
+		for _, option := range copied {
+			if option != nil {
+				config.deploymentOptions = append(config.deploymentOptions, option)
+			}
+		}
+		return nil
+	}
+}
+
+// WithArkhosOptions 透传底层 Arkhos starter 选项。
+func WithArkhosOptions(options ...gbcarkhos.Option) Option {
+	copied := append([]gbcarkhos.Option(nil), options...)
+	return func(config *settings) error {
+		for _, option := range copied {
+			if option != nil {
+				config.arkhosOptions = append(config.arkhosOptions, option)
+			}
+		}
+		return nil
+	}
+}
+
+func newSettings(environment coreenv.Environment, options []Option) (settings, error) {
+	config := settings{
+		applicationName: DefaultApplicationName,
+		contextPath:     DefaultContextPath,
+		mappingPattern:  DefaultMappingPattern,
+	}
+	if err := config.applyEnvironment(environment); err != nil {
+		return settings{}, err
+	}
+	for _, option := range options {
+		if option == nil {
+			continue
+		}
+		if err := option(&config); err != nil {
+			return settings{}, err
+		}
+	}
+	return config, nil
+}
+
+func (s *settings) applyEnvironment(environment coreenv.Environment) error {
+	if environment == nil {
+		return nil
+	}
+	if value, ok := environment.GetProperty(PropertyApplicationName); ok {
+		if err := WithApplicationName(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := environment.GetProperty(PropertyServletContextPath); ok {
+		if err := WithContextPath(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := environment.GetProperty(PropertyServletMapping); ok {
+		if err := WithMappingPattern(value)(s); err != nil {
+			return err
+		}
+	}
+	return nil
+}

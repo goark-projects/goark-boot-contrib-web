@@ -1,4 +1,5 @@
-// Package gbcweb 提供 Goark Boot Web 启动器的基础包。
+// Package gbcweb 提供 Goark Boot Web 启动器。
 //
-// 当前仓库处于初始化阶段，仅暴露稳定的模块元数据；运行期自动配置能力会在后续实现。
+// 该包对齐 spring-boot-starter-web 在 Spring Boot 生态中的职责：
+// 组合 Goark Web/MVC 和默认 Arkhos 嵌入式容器，业务代码只需要贡献明确的 Web 配置器或 MVC 控制器。
 package gbcweb
