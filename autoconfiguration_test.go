@@ -61,6 +61,48 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenResponseEntityRouteExists_shouldPreserveStatusHeadersAndBody(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.entity", mvc.NewController("jobs",
+			mvc.GET("/jobs/1", mvc.Entity(func(_ *arkweb.Context) (goweb.ResponseEntity[map[string]string], error) {
+				return goweb.Status(http.StatusAccepted, map[string]string{"state": "queued"}).
+					WithHeader("X-Starter-Entity", "true"), nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	server, err := goark.Get[*gbcarkhos.EmbeddedServer](t.Context(), appContext, gbcarkhos.BeanNameServer)
+	if err != nil {
+		t.Fatalf("resolve embedded server failed: %v", err)
+	}
+	snapshot := requestUntilStatusSnapshot(t, server.URL()+"/jobs/1", http.StatusAccepted)
+	if snapshot.header.Get("X-Starter-Entity") != "true" {
+		t.Fatalf("X-Starter-Entity = %q, want true", snapshot.header.Get("X-Starter-Entity"))
+	}
+	if snapshot.body != `{"state":"queued"}`+"\n" {
+		t.Fatalf("body = %q, want entity json", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenWebErrorMapperConfigurerExists_shouldApplyMapper(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
@@ -128,6 +170,15 @@ func requestUntilOK(t *testing.T, target string) string {
 }
 
 func requestUntilStatus(t *testing.T, target string, statusCode int) string {
+	return requestUntilStatusSnapshot(t, target, statusCode).body
+}
+
+type responseSnapshot struct {
+	body   string
+	header http.Header
+}
+
+func requestUntilStatusSnapshot(t *testing.T, target string, statusCode int) responseSnapshot {
 	t.Helper()
 	client := http.Client{Timeout: time.Second}
 	deadline := time.Now().Add(3 * time.Second)
@@ -140,7 +191,10 @@ func requestUntilStatus(t *testing.T, target string, statusCode int) string {
 				t.Fatalf("read/close response = %v/%v", readErr, closeErr)
 			}
 			if response.StatusCode == statusCode {
-				return string(body)
+				return responseSnapshot{
+					body:   string(body),
+					header: response.Header.Clone(),
+				}
 			}
 			t.Fatalf("status = %d, want %d, body = %q", response.StatusCode, statusCode, string(body))
 		}

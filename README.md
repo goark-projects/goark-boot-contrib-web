@@ -46,6 +46,7 @@ func main() {
 
 Business packages contribute MVC controllers, response advice, error mappers, or other `goark.dev/goark/web.Configurer` beans.
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
+MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`; the response status, headers, and JSON body are preserved by the generated route and starter deployment.
 
 ## Configuration Properties
 
@@ -90,6 +91,7 @@ Goark 官方维护的 Web 应用启动器模块。
 
 业务包只需要贡献 MVC 控制器、响应增强器、错误映射器或其他 `goark.dev/goark/web.Configurer` Bean。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
+MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`；生成路由和本启动器部署链路会保留响应状态码、响应头和 JSON 响应体。
 
 ## 配置属性
 
