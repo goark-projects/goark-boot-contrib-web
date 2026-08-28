@@ -1,6 +1,7 @@
 package gbcweb
 
 import (
+	"strconv"
 	"strings"
 
 	"goark.dev/arkarta/servlet"
@@ -22,6 +23,7 @@ type settings struct {
 	webAppOptions     []servlet.WebAppOption
 	deploymentOptions []servletcontainer.DeploymentOption
 	arkhosOptions     []gbcarkhos.Option
+	staticResources   staticResourceSettings
 }
 
 // WithApplicationName 设置 Web 应用名称。
@@ -59,6 +61,61 @@ func WithMappingPattern(pattern string) Option {
 			pattern = DefaultMappingPattern
 		}
 		config.mappingPattern = pattern
+		return nil
+	}
+}
+
+// WithStaticResourcesEnabled 设置是否启用默认静态资源约定。
+func WithStaticResourcesEnabled(enabled bool) Option {
+	return func(config *settings) error {
+		config.staticResources.enabled = enabled
+		return nil
+	}
+}
+
+// WithStaticResourceLocations 设置默认静态资源目录。
+func WithStaticResourceLocations(locations ...string) Option {
+	copied := append([]string(nil), locations...)
+	return func(config *settings) error {
+		normalized, err := normalizeStaticResourceLocations(copied)
+		if err != nil {
+			return err
+		}
+		config.staticResources.locations = normalized
+		return nil
+	}
+}
+
+// WithStaticResourcePattern 设置默认静态资源 Servlet 映射。
+func WithStaticResourcePattern(pattern string) Option {
+	return func(config *settings) error {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			return arkerrors.New(arkerrors.CodeInvalidArgument, "static resource pattern is empty")
+		}
+		config.staticResources.pattern = pattern
+		return nil
+	}
+}
+
+// WithStaticResourceServletName 设置默认静态资源 Servlet 名称。
+func WithStaticResourceServletName(name string) Option {
+	return func(config *settings) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return arkerrors.New(arkerrors.CodeInvalidArgument, "static resource servlet name is empty")
+		}
+		config.staticResources.servletName = name
+		return nil
+	}
+}
+
+// WithStaticResourceWelcomeFiles 设置默认静态资源 welcome file。
+func WithStaticResourceWelcomeFiles(files ...string) Option {
+	copied := append([]string(nil), files...)
+	return func(config *settings) error {
+		config.staticResources.welcomeFiles = splitStaticResourceList(copied)
+		config.staticResources.welcomeFilesSet = true
 		return nil
 	}
 }
@@ -120,6 +177,7 @@ func newSettings(environment coreenv.Environment, options []Option) (settings, e
 		applicationName: DefaultApplicationName,
 		contextPath:     DefaultContextPath,
 		mappingPattern:  DefaultMappingPattern,
+		staticResources: defaultStaticResourceSettings(),
 	}
 	if err := config.applyEnvironment(environment); err != nil {
 		return settings{}, err
@@ -151,6 +209,35 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 	}
 	if value, ok := environment.GetProperty(PropertyServletMapping); ok {
 		if err := WithMappingPattern(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := environment.GetProperty(PropertyStaticResourcesEnabled); ok {
+		enabled, err := strconv.ParseBool(strings.TrimSpace(value))
+		if err != nil {
+			return arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "invalid static resources enabled value %q", value)
+		}
+		if err := WithStaticResourcesEnabled(enabled)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := staticResourceLocationsProperty(environment); ok {
+		if err := WithStaticResourceLocations(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := staticResourcePatternProperty(environment); ok {
+		if err := WithStaticResourcePattern(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := environment.GetProperty(PropertyStaticResourcesServletName); ok {
+		if err := WithStaticResourceServletName(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := environment.GetProperty(PropertyStaticResourcesWelcomeFiles); ok {
+		if err := WithStaticResourceWelcomeFiles(value)(s); err != nil {
 			return err
 		}
 	}

@@ -47,6 +47,9 @@ func (c configuration) RegisterWithContext(_ context.Context, config appcontext.
 	if err != nil {
 		return err
 	}
+	if err := registerStaticResources(config.Registry(), resolved.staticResources); err != nil {
+		return err
+	}
 	return goarkcontainer.Register[*servletcontainer.Deployment](
 		config.Registry(),
 		BeanNameDeployment,

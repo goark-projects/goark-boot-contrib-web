@@ -56,8 +56,78 @@ goark:
 		t.Fatalf("resolve embedded server failed: %v", err)
 	}
 	body := requestUntilOK(t, server.URL()+"/healthz")
-	if body != `{"status":"UP"}`+"\n" {
+	if body != `{"status":"UP"}` {
 		t.Fatalf("body = %q, want health json", body)
+	}
+}
+
+func TestAutoConfigure_whenDefaultResourceStaticExists_shouldServeStaticResources(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	staticDir := filepath.Join(resource, "static")
+	mkdir(t, staticDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(staticDir, "app.txt"), "resource static")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	if body := requestUntilOK(t, serverURL+"/static/app.txt"); body != "resource static" {
+		t.Fatalf("static body = %q, want resource static", body)
+	}
+}
+
+func TestAutoConfigure_whenStaticResourcesConfigured_shouldServeConfiguredLocationAndPattern(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	publicDir := filepath.Join(root, "public")
+	mkdir(t, resource)
+	mkdir(t, publicDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+    resources:
+      static:
+        locations: public
+        pattern: /assets/*
+        welcome-files: index.html
+`)
+	writeFile(t, filepath.Join(publicDir, "app.txt"), "configured static")
+	writeFile(t, filepath.Join(publicDir, "index.html"), "configured index")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	if body := requestUntilOK(t, serverURL+"/assets/app.txt"); body != "configured static" {
+		t.Fatalf("configured static body = %q", body)
+	}
+	if body := requestUntilOK(t, serverURL+"/assets/"); body != "configured index" {
+		t.Fatalf("configured welcome body = %q", body)
 	}
 }
 
@@ -98,7 +168,7 @@ goark:
 	if snapshot.header.Get("X-Starter-Entity") != "true" {
 		t.Fatalf("X-Starter-Entity = %q, want true", snapshot.header.Get("X-Starter-Entity"))
 	}
-	if snapshot.body != `{"state":"queued"}`+"\n" {
+	if snapshot.body != `{"state":"queued"}` {
 		t.Fatalf("body = %q, want entity json", snapshot.body)
 	}
 }
@@ -239,6 +309,27 @@ func writeFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write %q failed: %v", path, err)
+	}
+}
+
+func mkdir(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		t.Fatalf("mkdir %q failed: %v", path, err)
+	}
+}
+
+func clearConfigDataEnvironment(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{
+		configdata.EnvConfigLocation,
+		configdata.EnvConfigName,
+		configdata.EnvProfilesActive,
+		"SPRING_CONFIG_LOCATION",
+		"SPRING_CONFIG_NAME",
+		"SPRING_PROFILES_ACTIVE",
+	} {
+		t.Setenv(name, "")
 	}
 }
 
