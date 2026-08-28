@@ -17,7 +17,7 @@ Official Goark Boot starter module for web applications.
 - Goark Web and MVC defaults.
 - Arkarta web and servlet integration.
 - Arkhos as the default embedded web container through `goark.dev/gbc-arkhos`.
-- JSON binding and handler registration conventions supplied by `goark.dev/goark/web/mvc`.
+- Auto-application of `goark.dev/goark/web.Configurer` beans, including MVC routes, response advice, and error mappers supplied by application code.
 
 ## Usage
 
@@ -44,7 +44,7 @@ func main() {
 }
 ```
 
-Business packages contribute MVC controllers or `goark.dev/goark/web.Configurer` beans.
+Business packages contribute MVC controllers, response advice, error mappers, or other `goark.dev/goark/web.Configurer` beans.
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
 
 ## Configuration Properties
@@ -84,11 +84,11 @@ Goark 官方维护的 Web 应用启动器模块。
 - 提供 Goark Web 与 MVC 默认配置。
 - 集成 Arkarta Web 与 Servlet 标准。
 - 默认通过 `goark.dev/gbc-arkhos` 接入 Arkhos 嵌入式 Web 容器。
-- 提供 `goark.dev/goark/web/mvc` 的 JSON 绑定和处理器注册约定。
+- 自动应用业务贡献的 `goark.dev/goark/web.Configurer` Bean，包括 MVC 路由、响应增强器和错误映射器。
 
 ## 使用方式
 
-业务包只需要贡献 MVC 控制器或 `goark.dev/goark/web.Configurer` Bean。
+业务包只需要贡献 MVC 控制器、响应增强器、错误映射器或其他 `goark.dev/goark/web.Configurer` Bean。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
 
 ## 配置属性

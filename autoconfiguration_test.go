@@ -1,6 +1,8 @@
 package gbcweb_test
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -14,8 +16,12 @@ import (
 	gbcarkhos "goark.dev/gbc-arkhos"
 	"goark.dev/gbc-web"
 	"goark.dev/goark"
+	"goark.dev/goark/container"
+	goweb "goark.dev/goark/web"
 	"goark.dev/goark/web/mvc"
 )
+
+var errStarterMapped = errors.New("starter mapped")
 
 func TestAutoConfigure_whenMVCControllerExists_shouldServeRequestWithArkhos(t *testing.T) {
 	root := t.TempDir()
@@ -55,6 +61,47 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenWebErrorMapperConfigurerExists_shouldApplyMapper(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc", mvc.NewController("errors",
+				mvc.GET("/errors", mvc.JSON(http.StatusOK, func(_ *arkweb.Context) (map[string]string, error) {
+					return nil, errStarterMapped
+				})),
+			)),
+			starterErrorMapperConfiguration{},
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	server, err := goark.Get[*gbcarkhos.EmbeddedServer](t.Context(), appContext, gbcarkhos.BeanNameServer)
+	if err != nil {
+		t.Fatalf("resolve embedded server failed: %v", err)
+	}
+	body := requestUntilStatus(t, server.URL()+"/errors", http.StatusConflict)
+	if body != "mapped" {
+		t.Fatalf("body = %q, want mapped", body)
+	}
+}
+
 func TestAutoConfigure_whenRegisteredTwice_shouldBackOffExistingConfigurations(t *testing.T) {
 	app, err := boot.Run(
 		t.Context(),
@@ -77,6 +124,10 @@ func TestAutoConfigure_whenRegisteredTwice_shouldBackOffExistingConfigurations(t
 }
 
 func requestUntilOK(t *testing.T, target string) string {
+	return requestUntilStatus(t, target, http.StatusOK)
+}
+
+func requestUntilStatus(t *testing.T, target string, statusCode int) string {
 	t.Helper()
 	client := http.Client{Timeout: time.Second}
 	deadline := time.Now().Add(3 * time.Second)
@@ -88,16 +139,39 @@ func requestUntilOK(t *testing.T, target string) string {
 			if readErr != nil || closeErr != nil {
 				t.Fatalf("read/close response = %v/%v", readErr, closeErr)
 			}
-			if response.StatusCode == http.StatusOK {
+			if response.StatusCode == statusCode {
 				return string(body)
 			}
-			t.Fatalf("status = %d, body = %q", response.StatusCode, string(body))
+			t.Fatalf("status = %d, want %d, body = %q", response.StatusCode, statusCode, string(body))
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("GET %s did not succeed before deadline: %v", target, err)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+type starterErrorMapperConfiguration struct{}
+
+func (starterErrorMapperConfiguration) Name() string {
+	return "test.web.error-mapper"
+}
+
+func (starterErrorMapperConfiguration) Order() int {
+	return 0
+}
+
+func (c starterErrorMapperConfiguration) Register(ctx context.Context, registry *container.Registry) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+func (starterErrorMapperConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
+	return goweb.RegisterErrorMapper(config.Registry(), "testErrorMapper", goweb.ErrorMapperFunc(func(_ *arkweb.Context, err error) arkweb.Result {
+		if errors.Is(err, errStarterMapped) {
+			return arkweb.Text(http.StatusConflict, "mapped")
+		}
+		return nil
+	}))
 }
 
 func closeApp(t *testing.T, app *boot.Application) {
