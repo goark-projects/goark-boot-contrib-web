@@ -61,6 +61,11 @@ MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`; the response stat
 | `goark.web.resources.static.welcome-files` | `index.html,index.htm` | Comma-separated welcome files. Empty option disables welcome lookup. |
 | `goark.web.resources.static.cache-control` | unset | Static resource `Cache-Control` header value. |
 | `goark.web.resources.static.cache.max-age` | unset | Static resource cache duration; emits `public, max-age=N`. |
+| `goark.web.mvc.view.enabled` | `true` | Enable default MVC template view resolver when templates exist. |
+| `goark.web.mvc.view.templates.location` | `resource/templates` | Template root directory. `classpath:/templates/` maps to `resource/templates`. |
+| `goark.web.mvc.view.prefix` | unset | Prefix added to logical view names. |
+| `goark.web.mvc.view.suffix` | `.html` | Suffix added to logical view names. |
+| `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | Default template response content type. |
 
 Spring-compatible aliases are recognized for static resources:
 
@@ -71,6 +76,8 @@ Spring-compatible aliases are recognized for static resources:
 | `spring.web.resources.cache.cache-control` | `goark.web.resources.static.cache-control` |
 | `spring.web.resources.cache.cachecontrol.max-age` | `goark.web.resources.static.cache.max-age` |
 | `spring.web.resources.cache.period` | `goark.web.resources.static.cache.max-age` |
+| `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
+| `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
 
 Server and multipart properties are provided by `goark.dev/gbc-arkhos`, which this starter includes by default.
 
@@ -124,6 +131,11 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`；生成路由和
 | `goark.web.resources.static.welcome-files` | `index.html,index.htm` | welcome file 列表，逗号分隔；通过 Option 传空列表可禁用 welcome 查找。 |
 | `goark.web.resources.static.cache-control` | 未设置 | 静态资源 `Cache-Control` 响应头。 |
 | `goark.web.resources.static.cache.max-age` | 未设置 | 静态资源缓存时间，生成 `public, max-age=N`。 |
+| `goark.web.mvc.view.enabled` | `true` | 模板存在时启用默认 MVC 模板视图解析器。 |
+| `goark.web.mvc.view.templates.location` | `resource/templates` | 模板根目录，`classpath:/templates/` 会映射为 `resource/templates`。 |
+| `goark.web.mvc.view.prefix` | 未设置 | 逻辑视图名前缀。 |
+| `goark.web.mvc.view.suffix` | `.html` | 逻辑视图名后缀。 |
+| `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | 模板响应默认媒体类型。 |
 
 静态资源支持以下 Spring 兼容属性：
 
@@ -134,6 +146,8 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`；生成路由和
 | `spring.web.resources.cache.cache-control` | `goark.web.resources.static.cache-control` |
 | `spring.web.resources.cache.cachecontrol.max-age` | `goark.web.resources.static.cache.max-age` |
 | `spring.web.resources.cache.period` | `goark.web.resources.static.cache.max-age` |
+| `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
+| `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
 
 服务端监听和 multipart 属性由默认包含的 `goark.dev/gbc-arkhos` 提供。
 

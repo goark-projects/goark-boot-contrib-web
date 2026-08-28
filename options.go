@@ -25,6 +25,7 @@ type settings struct {
 	deploymentOptions []servletcontainer.DeploymentOption
 	arkhosOptions     []gbcarkhos.Option
 	staticResources   staticResourceSettings
+	viewTemplates     viewTemplateSettings
 	filters           filterSettings
 	errorHandling     errorHandlingSettings
 }
@@ -146,6 +147,56 @@ func WithStaticResourceCacheMaxAge(maxAge time.Duration) Option {
 	}
 }
 
+// WithViewTemplatesEnabled 设置是否启用默认 MVC 模板视图约定。
+func WithViewTemplatesEnabled(enabled bool) Option {
+	return func(config *settings) error {
+		config.viewTemplates.enabled = enabled
+		return nil
+	}
+}
+
+// WithViewTemplatesLocation 设置默认 MVC 模板根目录。
+func WithViewTemplatesLocation(location string) Option {
+	return func(config *settings) error {
+		location = normalizeStaticResourceLocation(location)
+		if strings.TrimSpace(location) == "" {
+			return arkerrors.New(arkerrors.CodeInvalidArgument, "view template location is empty")
+		}
+		config.viewTemplates.location = location
+		return nil
+	}
+}
+
+// WithViewTemplatePrefix 设置默认 MVC 模板逻辑视图名前缀。
+func WithViewTemplatePrefix(prefix string) Option {
+	return func(config *settings) error {
+		config.viewTemplates.prefix = strings.TrimSpace(prefix)
+		return nil
+	}
+}
+
+// WithViewTemplateSuffix 设置默认 MVC 模板逻辑视图名后缀。
+func WithViewTemplateSuffix(suffix string) Option {
+	return func(config *settings) error {
+		config.viewTemplates.suffix = strings.TrimSpace(suffix)
+		return nil
+	}
+}
+
+// WithViewTemplateContentType 设置默认 MVC 模板响应媒体类型。
+func WithViewTemplateContentType(contentType string) Option {
+	return func(config *settings) error {
+		contentType = strings.TrimSpace(contentType)
+		if strings.ContainsAny(contentType, "\r\n") {
+			return arkerrors.New(arkerrors.CodeInvalidArgument, "view template content type is invalid")
+		}
+		if contentType != "" {
+			config.viewTemplates.contentType = contentType
+		}
+		return nil
+	}
+}
+
 // WithRouterOptions 追加 Arkarta Web Router 选项。
 func WithRouterOptions(options ...arkweb.Option) Option {
 	copied := append([]arkweb.Option(nil), options...)
@@ -204,6 +255,7 @@ func newSettings(environment coreenv.Environment, options []Option) (settings, e
 		contextPath:     DefaultContextPath,
 		mappingPattern:  DefaultMappingPattern,
 		staticResources: defaultStaticResourceSettings(),
+		viewTemplates:   defaultViewTemplateSettings(),
 		filters:         defaultFilterSettings(),
 		errorHandling:   defaultErrorHandlingSettings(),
 	}
@@ -283,6 +335,9 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 		}
 	}
 	if err := s.applyFilterEnvironment(environment); err != nil {
+		return err
+	}
+	if err := s.applyViewEnvironment(environment); err != nil {
 		return err
 	}
 	if err := s.applyErrorEnvironment(environment); err != nil {

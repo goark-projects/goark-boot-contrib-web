@@ -37,6 +37,12 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
 	}
+	if !settings.viewTemplates.enabled ||
+		settings.viewTemplates.location != DefaultViewTemplatesLocation ||
+		settings.viewTemplates.suffix != DefaultViewTemplateSuffix ||
+		settings.viewTemplates.contentType != DefaultViewTemplateContentType {
+		t.Fatalf("view template defaults = %+v", settings.viewTemplates)
+	}
 	if !settings.errorHandling.enabled ||
 		!settings.errorHandling.problemDetailsEnabled ||
 		settings.errorHandling.path != DefaultErrorPath {
@@ -55,6 +61,11 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyStaticResourcesWelcomeFiles: "index.html, home.html",
 		PropertyStaticResourcesEnabled:      "true",
 		PropertyStaticResourcesCacheControl: "public, max-age=60",
+		PropertyViewTemplatesEnabled:        "true",
+		PropertyViewTemplatesLocation:       "classpath:/templates/",
+		PropertyViewTemplatePrefix:          "pages",
+		PropertyViewTemplateSuffix:          ".tmpl",
+		PropertyViewTemplateContentType:     "text/plain; charset=utf-8",
 		PropertyCORSEnabled:                 "true",
 		PropertyCORSAllowedOrigins:          "https://admin.example.com",
 		PropertyCORSAllowedMethods:          "GET,POST",
@@ -107,6 +118,13 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.forwardedHeaders.enabled {
 		t.Fatalf("forwarded headers settings = %+v", settings.filters.forwardedHeaders)
 	}
+	if !settings.viewTemplates.enabled ||
+		settings.viewTemplates.location != "resource\\templates" && settings.viewTemplates.location != "resource/templates" ||
+		settings.viewTemplates.prefix != "pages" ||
+		settings.viewTemplates.suffix != ".tmpl" ||
+		settings.viewTemplates.contentType != "text/plain; charset=utf-8" {
+		t.Fatalf("view template settings = %+v", settings.viewTemplates)
+	}
 	if !settings.filters.shallowETag.enabled || settings.filters.shallowETag.maxBodyBytes != 4096 {
 		t.Fatalf("shallow etag settings = %+v", settings.filters.shallowETag)
 	}
@@ -133,6 +151,10 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithStaticResourceLocations("resource/option"),
 		WithStaticResourcePattern("/option-static/*"),
 		WithStaticResourceCacheMaxAge(2 * time.Minute),
+		WithViewTemplatesLocation("resource/views"),
+		WithViewTemplatePrefix("admin"),
+		WithViewTemplateSuffix(".tmpl"),
+		WithViewTemplateContentType("text/plain"),
 		WithCORS(gowebcors.Config{AllowedOrigins: []string{"https://option.example.com"}}),
 		WithForwardedHeadersEnabled(true),
 		WithShallowETagEnabled(true),
@@ -159,6 +181,12 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	}
 	if len(settings.arkhosOptions) != 1 {
 		t.Fatalf("arkhos options count = %d, want 1", len(settings.arkhosOptions))
+	}
+	if settings.viewTemplates.location != "resource/views" ||
+		settings.viewTemplates.prefix != "admin" ||
+		settings.viewTemplates.suffix != ".tmpl" ||
+		settings.viewTemplates.contentType != "text/plain" {
+		t.Fatalf("view options did not override environment: %+v", settings.viewTemplates)
 	}
 	if !settings.filters.cors.enabled ||
 		settings.filters.cors.config.AllowedOrigins[0] != "https://option.example.com" ||

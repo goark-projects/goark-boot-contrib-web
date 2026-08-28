@@ -15,6 +15,10 @@ const (
 	BeanNameProblemDetailsMapper = "goark.boot.web.problemDetailsMapper"
 	// BeanNameErrorEndpoint 是默认错误端点配置器 Bean 名称。
 	BeanNameErrorEndpoint = "goark.boot.web.errorEndpoint"
+	// BeanNameViewResolver 是默认 MVC 视图解析器 Bean 名称。
+	BeanNameViewResolver = "goark.boot.web.viewResolver"
+	// BeanNameViewInterceptor 是默认 MVC 视图解析器拦截器 Bean 名称。
+	BeanNameViewInterceptor = "goark.boot.web.viewInterceptor"
 )
 
 const (
@@ -38,6 +42,14 @@ const (
 	DefaultShallowETagMaxBodyBytes int64 = 1 << 20
 	// DefaultErrorPath 是默认 Boot 风格错误端点路径。
 	DefaultErrorPath = "/error"
+	// DefaultViewTemplatesEnabled 表示默认启用模板视图约定。
+	DefaultViewTemplatesEnabled = true
+	// DefaultViewTemplatesLocation 是默认模板目录。
+	DefaultViewTemplatesLocation = "resource/templates"
+	// DefaultViewTemplateSuffix 是默认模板后缀。
+	DefaultViewTemplateSuffix = ".html"
+	// DefaultViewTemplateContentType 是默认模板响应媒体类型。
+	DefaultViewTemplateContentType = "text/html; charset=utf-8"
 )
 
 const (
@@ -91,4 +103,14 @@ const (
 	PropertyErrorPath = "goark.web.error.path"
 	// PropertyProblemDetailsEnabled 设置是否启用 Problem Details 错误响应。
 	PropertyProblemDetailsEnabled = "goark.web.problem-details.enabled"
+	// PropertyViewTemplatesEnabled 设置是否启用 MVC 模板视图约定。
+	PropertyViewTemplatesEnabled = "goark.web.mvc.view.enabled"
+	// PropertyViewTemplatesLocation 设置 MVC 模板根目录。
+	PropertyViewTemplatesLocation = "goark.web.mvc.view.templates.location"
+	// PropertyViewTemplatePrefix 设置 MVC 模板逻辑视图名前缀。
+	PropertyViewTemplatePrefix = "goark.web.mvc.view.prefix"
+	// PropertyViewTemplateSuffix 设置 MVC 模板逻辑视图名后缀。
+	PropertyViewTemplateSuffix = "goark.web.mvc.view.suffix"
+	// PropertyViewTemplateContentType 设置 MVC 模板响应媒体类型。
+	PropertyViewTemplateContentType = "goark.web.mvc.view.content-type"
 )

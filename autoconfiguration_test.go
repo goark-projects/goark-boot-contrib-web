@@ -20,6 +20,7 @@ import (
 	"goark.dev/goark/container"
 	goweb "goark.dev/goark/web"
 	"goark.dev/goark/web/mvc"
+	mvcview "goark.dev/goark/web/mvc/view"
 )
 
 var errStarterMapped = errors.New("starter mapped")
@@ -146,6 +147,44 @@ goark:
 	}
 	if body := requestUntilOK(t, serverURL+"/assets/"); body != "configured index" {
 		t.Fatalf("configured welcome body = %q", body)
+	}
+}
+
+func TestAutoConfigure_whenDefaultTemplateExists_shouldRenderMVCView(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "home.html"), "<h1>{{.Title}}</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.view", mvc.NewController("views",
+			mvc.GET("/home", mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
+				return mvcview.Render("home", map[string]string{"Title": "Goark"}), nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/home", http.StatusOK)
+	if snapshot.header.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want html", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != "<h1>Goark</h1>" {
+		t.Fatalf("view body = %q, want rendered html", snapshot.body)
 	}
 }
 
