@@ -35,6 +35,11 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
 	}
+	if !settings.errorHandling.enabled ||
+		!settings.errorHandling.problemDetailsEnabled ||
+		settings.errorHandling.path != DefaultErrorPath {
+		t.Fatalf("error defaults = %+v", settings.errorHandling)
+	}
 }
 
 func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *testing.T) {
@@ -57,6 +62,9 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyForwardedHeadersEnabled:     "true",
 		PropertyShallowETagEnabled:          "true",
 		PropertyShallowETagMaxBodyBytes:     "4096",
+		PropertyErrorEndpointEnabled:        "true",
+		PropertyErrorPath:                   "/failure",
+		PropertyProblemDetailsEnabled:       "true",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -98,6 +106,11 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.shallowETag.enabled || settings.filters.shallowETag.maxBodyBytes != 4096 {
 		t.Fatalf("shallow etag settings = %+v", settings.filters.shallowETag)
 	}
+	if !settings.errorHandling.enabled ||
+		!settings.errorHandling.problemDetailsEnabled ||
+		settings.errorHandling.path != "/failure" {
+		t.Fatalf("error settings = %+v", settings.errorHandling)
+	}
 }
 
 func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
@@ -119,6 +132,9 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithForwardedHeadersEnabled(true),
 		WithShallowETagEnabled(true),
 		WithShallowETagMaxBodyBytes(512),
+		WithErrorEndpointEnabled(true),
+		WithErrorPath("/option-error"),
+		WithProblemDetailsEnabled(true),
 		WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
 	})
 	if err != nil {
@@ -144,6 +160,11 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		!settings.filters.shallowETag.enabled ||
 		settings.filters.shallowETag.maxBodyBytes != 512 {
 		t.Fatalf("filter options did not override environment: %+v", settings.filters)
+	}
+	if !settings.errorHandling.enabled ||
+		!settings.errorHandling.problemDetailsEnabled ||
+		settings.errorHandling.path != "/option-error" {
+		t.Fatalf("error options did not override environment: %+v", settings.errorHandling)
 	}
 }
 

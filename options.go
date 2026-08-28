@@ -25,6 +25,7 @@ type settings struct {
 	arkhosOptions     []gbcarkhos.Option
 	staticResources   staticResourceSettings
 	filters           filterSettings
+	errorHandling     errorHandlingSettings
 }
 
 // WithApplicationName 设置 Web 应用名称。
@@ -180,6 +181,7 @@ func newSettings(environment coreenv.Environment, options []Option) (settings, e
 		mappingPattern:  DefaultMappingPattern,
 		staticResources: defaultStaticResourceSettings(),
 		filters:         defaultFilterSettings(),
+		errorHandling:   defaultErrorHandlingSettings(),
 	}
 	if err := config.applyEnvironment(environment); err != nil {
 		return settings{}, err
@@ -244,6 +246,9 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 		}
 	}
 	if err := s.applyFilterEnvironment(environment); err != nil {
+		return err
+	}
+	if err := s.applyErrorEnvironment(environment); err != nil {
 		return err
 	}
 	return nil

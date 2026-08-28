@@ -174,6 +174,72 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenHandlerReturnsError_shouldUseProblemDetails(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.problem", mvc.NewController("problem",
+			mvc.GET("/problem", mvc.JSON(http.StatusOK, func(_ *arkweb.Context) (map[string]string, error) {
+				return nil, errors.New("internal secret")
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/problem", http.StatusInternalServerError)
+	if snapshot.header.Get("Content-Type") != "application/problem+json" {
+		t.Fatalf("content type = %q, want problem json", snapshot.header.Get("Content-Type"))
+	}
+	if !strings.Contains(snapshot.body, `"status":500`) ||
+		!strings.Contains(snapshot.body, `"instance":"/problem"`) ||
+		strings.Contains(snapshot.body, "internal secret") {
+		t.Fatalf("problem body = %q", snapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenErrorEndpointRequestedDirectly_shouldReturnProblemDetails(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+    error:
+      path: /error
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/error", http.StatusInternalServerError)
+	if snapshot.header.Get("Content-Type") != "application/problem+json" {
+		t.Fatalf("content type = %q, want problem json", snapshot.header.Get("Content-Type"))
+	}
+	if !strings.Contains(snapshot.body, `"title":"Internal Server Error"`) ||
+		!strings.Contains(snapshot.body, `"instance":"/error"`) {
+		t.Fatalf("error endpoint body = %q", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenWebErrorMapperConfigurerExists_shouldApplyMapper(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
