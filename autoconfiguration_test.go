@@ -55,6 +55,27 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenRegisteredTwice_shouldBackOffExistingConfigurations(t *testing.T) {
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(
+			gbcweb.AutoConfigure(gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0"))),
+			gbcweb.AutoConfigure(gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0"))),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	assertConfigurationCount(t, appContext.Configurations(), "goark.boot.contrib.web.configuration", 1)
+	assertConfigurationCount(t, appContext.Configurations(), "goark.boot.contrib.arkhos.configuration", 1)
+}
+
 func requestUntilOK(t *testing.T, target string) string {
 	t.Helper()
 	client := http.Client{Timeout: time.Second}
@@ -90,5 +111,19 @@ func writeFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write %q failed: %v", path, err)
+	}
+}
+
+func assertConfigurationCount(t *testing.T, descriptors []goark.ConfigurationDescriptor, name string, want int) {
+	t.Helper()
+
+	got := 0
+	for _, descriptor := range descriptors {
+		if descriptor.Name == name {
+			got++
+		}
+	}
+	if got != want {
+		t.Fatalf("configuration %q count = %d, want %d", name, got, want)
 	}
 }
