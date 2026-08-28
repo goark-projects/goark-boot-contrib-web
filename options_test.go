@@ -24,9 +24,11 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 	if settings.mappingPattern != DefaultMappingPattern {
 		t.Fatalf("mapping pattern = %q, want %q", settings.mappingPattern, DefaultMappingPattern)
 	}
+	defaultLocations := splitStaticResourceList([]string{DefaultStaticResourcesLocations})
 	if !settings.staticResources.enabled ||
-		len(settings.staticResources.locations) != 1 ||
-		settings.staticResources.locations[0] != DefaultStaticResourcesLocation ||
+		len(settings.staticResources.locations) != len(defaultLocations) ||
+		settings.staticResources.locations[0] != "resource/static" ||
+		settings.staticResources.locations[len(settings.staticResources.locations)-1] != "resource/META-INF/resources" ||
 		settings.staticResources.pattern != DefaultStaticResourcesPattern {
 		t.Fatalf("static resources defaults = %+v", settings.staticResources)
 	}
@@ -52,6 +54,7 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyStaticResourcesServletName:  "adminStatic",
 		PropertyStaticResourcesWelcomeFiles: "index.html, home.html",
 		PropertyStaticResourcesEnabled:      "true",
+		PropertyStaticResourcesCacheControl: "public, max-age=60",
 		PropertyCORSEnabled:                 "true",
 		PropertyCORSAllowedOrigins:          "https://admin.example.com",
 		PropertyCORSAllowedMethods:          "GET,POST",
@@ -88,7 +91,8 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		settings.staticResources.pattern != "/assets/*" ||
 		settings.staticResources.servletName != "adminStatic" ||
 		len(settings.staticResources.welcomeFiles) != 2 ||
-		settings.staticResources.welcomeFiles[1] != "home.html" {
+		settings.staticResources.welcomeFiles[1] != "home.html" ||
+		settings.staticResources.cacheControl != "public, max-age=60" {
 		t.Fatalf("static resources settings = %+v", settings.staticResources)
 	}
 	if !settings.filters.cors.enabled ||
@@ -128,6 +132,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithMappingPattern("/option/*"),
 		WithStaticResourceLocations("resource/option"),
 		WithStaticResourcePattern("/option-static/*"),
+		WithStaticResourceCacheMaxAge(2 * time.Minute),
 		WithCORS(gowebcors.Config{AllowedOrigins: []string{"https://option.example.com"}}),
 		WithForwardedHeadersEnabled(true),
 		WithShallowETagEnabled(true),
@@ -148,7 +153,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	}
 	if len(settings.staticResources.locations) != 1 ||
 		settings.staticResources.locations[0] != "resource/option" ||
-		settings.staticResources.pattern != "/option-static/*" {
+		settings.staticResources.pattern != "/option-static/*" ||
+		settings.staticResources.cacheControl != "public, max-age=120" {
 		t.Fatalf("static options did not override environment: %+v", settings.staticResources)
 	}
 	if len(settings.arkhosOptions) != 1 {
@@ -170,8 +176,11 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 
 func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProperties(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		propertySpringStaticLocations: "classpath:/static/,file:public",
-		propertySpringStaticPattern:   "/content/*",
+		propertySpringStaticLocations:    "classpath:/static/,file:public",
+		propertySpringStaticPattern:      "/content/*",
+		propertySpringStaticCacheControl: "private, max-age=30",
+		propertySpringStaticCacheMaxAge:  "10m",
+		propertySpringStaticCachePeriod:  "5m",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -182,7 +191,8 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 	if len(settings.staticResources.locations) != 2 ||
 		settings.staticResources.locations[0] != "resource\\static" && settings.staticResources.locations[0] != "resource/static" ||
 		settings.staticResources.locations[1] != "public" ||
-		settings.staticResources.pattern != "/content/*" {
+		settings.staticResources.pattern != "/content/*" ||
+		settings.staticResources.cacheControl != "private, max-age=30" {
 		t.Fatalf("spring static settings = %+v", settings.staticResources)
 	}
 }

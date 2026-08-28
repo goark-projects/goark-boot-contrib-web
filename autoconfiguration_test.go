@@ -24,6 +24,11 @@ import (
 
 var errStarterMapped = errors.New("starter mapped")
 
+type starterForwardedPayload struct {
+	URL    string `json:"url"`
+	Remote string `json:"remote"`
+}
+
 func TestAutoConfigure_whenMVCControllerExists_shouldServeRequestWithArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
@@ -66,7 +71,9 @@ func TestAutoConfigure_whenDefaultResourceStaticExists_shouldServeStaticResource
 	root := t.TempDir()
 	resource := filepath.Join(root, "resource")
 	staticDir := filepath.Join(resource, "static")
+	publicDir := filepath.Join(resource, "public")
 	mkdir(t, staticDir)
+	mkdir(t, publicDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
 goark:
   web:
@@ -74,6 +81,7 @@ goark:
       address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(staticDir, "app.txt"), "resource static")
+	writeFile(t, filepath.Join(publicDir, "public.txt"), "resource public")
 	t.Chdir(root)
 	clearConfigDataEnvironment(t)
 
@@ -89,6 +97,9 @@ goark:
 	serverURL := starterServerURL(t, app)
 	if body := requestUntilOK(t, serverURL+"/static/app.txt"); body != "resource static" {
 		t.Fatalf("static body = %q, want resource static", body)
+	}
+	if body := requestUntilOK(t, serverURL+"/static/public.txt"); body != "resource public" {
+		t.Fatalf("public static body = %q, want resource public", body)
 	}
 }
 
@@ -108,6 +119,8 @@ goark:
         locations: public
         pattern: /assets/*
         welcome-files: index.html
+        cache:
+          max-age: 1h
 `)
 	writeFile(t, filepath.Join(publicDir, "app.txt"), "configured static")
 	writeFile(t, filepath.Join(publicDir, "index.html"), "configured index")
@@ -124,8 +137,12 @@ goark:
 	defer closeApp(t, app)
 
 	serverURL := starterServerURL(t, app)
-	if body := requestUntilOK(t, serverURL+"/assets/app.txt"); body != "configured static" {
-		t.Fatalf("configured static body = %q", body)
+	staticSnapshot := requestUntilStatusSnapshot(t, serverURL+"/assets/app.txt", http.StatusOK)
+	if staticSnapshot.body != "configured static" {
+		t.Fatalf("configured static body = %q", staticSnapshot.body)
+	}
+	if got := staticSnapshot.header.Get("Cache-Control"); got != "public, max-age=3600" {
+		t.Fatalf("Cache-Control = %q, want public max-age", got)
 	}
 	if body := requestUntilOK(t, serverURL+"/assets/"); body != "configured index" {
 		t.Fatalf("configured welcome body = %q", body)
@@ -308,11 +325,11 @@ goark:
 		boot.WithConfigDataOptions(configdata.WithLocations(root)),
 		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
 		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.filters", mvc.NewController("filters",
-			mvc.GET("/filters", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (map[string]string, error) {
+			mvc.GET("/filters", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterForwardedPayload, error) {
 				ctx.Response().Header().Set("X-Trace-ID", "trace-1")
-				return map[string]string{
-					"url":    ctx.Request().RequestURL(),
-					"remote": ctx.Request().RemoteAddr(),
+				return starterForwardedPayload{
+					URL:    ctx.Request().RequestURL(),
+					Remote: ctx.Request().RemoteAddr(),
 				}, nil
 			})),
 		))),

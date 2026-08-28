@@ -3,6 +3,7 @@ package gbcweb
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"goark.dev/arkarta/servlet"
 	servletcontainer "goark.dev/arkarta/servlet/container"
@@ -118,6 +119,29 @@ func WithStaticResourceWelcomeFiles(files ...string) Option {
 	return func(config *settings) error {
 		config.staticResources.welcomeFiles = splitStaticResourceList(copied)
 		config.staticResources.welcomeFilesSet = true
+		return nil
+	}
+}
+
+// WithStaticResourceCacheControl 设置默认静态资源 Cache-Control 头。
+func WithStaticResourceCacheControl(value string) Option {
+	return func(config *settings) error {
+		value = strings.TrimSpace(value)
+		if strings.ContainsAny(value, "\r\n") {
+			return arkerrors.New(arkerrors.CodeInvalidArgument, "static resource cache-control is invalid")
+		}
+		config.staticResources.cacheControl = value
+		return nil
+	}
+}
+
+// WithStaticResourceCacheMaxAge 设置默认静态资源 public max-age 缓存时间。
+func WithStaticResourceCacheMaxAge(maxAge time.Duration) Option {
+	return func(config *settings) error {
+		if maxAge < 0 {
+			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "static resource cache max-age %s must be >= 0", maxAge)
+		}
+		config.staticResources.cacheControl = "public, max-age=" + strconv.FormatInt(int64(maxAge/time.Second), 10)
 		return nil
 	}
 }
@@ -242,6 +266,19 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 	}
 	if value, ok := environment.GetProperty(PropertyStaticResourcesWelcomeFiles); ok {
 		if err := WithStaticResourceWelcomeFiles(value)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := firstProperty(environment, PropertyStaticResourcesCacheControl, propertySpringStaticCacheControl); ok {
+		if err := WithStaticResourceCacheControl(value)(s); err != nil {
+			return err
+		}
+	} else if value, ok := firstProperty(environment, PropertyStaticResourcesCacheMaxAge, propertySpringStaticCacheMaxAge, propertySpringStaticCachePeriod); ok {
+		maxAge, err := parseDurationProperty(PropertyStaticResourcesCacheMaxAge, value)
+		if err != nil {
+			return err
+		}
+		if err := WithStaticResourceCacheMaxAge(maxAge)(s); err != nil {
 			return err
 		}
 	}

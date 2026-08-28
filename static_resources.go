@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	propertySpringStaticLocations = "spring.web.resources.static-locations"
-	propertySpringStaticPattern   = "spring.mvc.static-path-pattern"
+	propertySpringStaticLocations    = "spring.web.resources.static-locations"
+	propertySpringStaticPattern      = "spring.mvc.static-path-pattern"
+	propertySpringStaticCacheControl = "spring.web.resources.cache.cache-control"
+	propertySpringStaticCacheMaxAge  = "spring.web.resources.cache.cachecontrol.max-age"
+	propertySpringStaticCachePeriod  = "spring.web.resources.cache.period"
 )
 
 type staticResourceSettings struct {
@@ -25,12 +28,13 @@ type staticResourceSettings struct {
 	servletName     string
 	welcomeFiles    []string
 	welcomeFilesSet bool
+	cacheControl    string
 }
 
 func defaultStaticResourceSettings() staticResourceSettings {
 	return staticResourceSettings{
 		enabled:     DefaultStaticResourcesEnabled,
-		locations:   []string{DefaultStaticResourcesLocation},
+		locations:   splitStaticResourceList([]string{DefaultStaticResourcesLocations}),
 		pattern:     DefaultStaticResourcesPattern,
 		servletName: DefaultStaticResourcesServletName,
 	}
@@ -50,6 +54,9 @@ func registerStaticResources(registry *goarkcontainer.Registry, settings staticR
 	options := []static.Option{static.WithServletName(settings.servletName)}
 	if settings.welcomeFilesSet {
 		options = append(options, static.WithWelcomeFiles(settings.welcomeFiles...))
+	}
+	if settings.cacheControl != "" {
+		options = append(options, static.WithCacheControl(settings.cacheControl))
 	}
 	return static.Register(registry, BeanNameStaticResources, settings.pattern, fallbackFS{roots: roots}, options...)
 }
