@@ -2,9 +2,11 @@ package gbcweb
 
 import (
 	"testing"
+	"time"
 
 	gbcarkhos "goark.dev/gbc-arkhos"
 	coreenv "goark.dev/goark/core/env"
+	gowebcors "goark.dev/goark/web/cors"
 )
 
 func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
@@ -28,6 +30,11 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.staticResources.pattern != DefaultStaticResourcesPattern {
 		t.Fatalf("static resources defaults = %+v", settings.staticResources)
 	}
+	if settings.filters.cors.enabled ||
+		settings.filters.forwardedHeaders.enabled ||
+		settings.filters.shallowETag.enabled {
+		t.Fatalf("filter defaults = %+v", settings.filters)
+	}
 }
 
 func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *testing.T) {
@@ -40,6 +47,16 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyStaticResourcesServletName:  "adminStatic",
 		PropertyStaticResourcesWelcomeFiles: "index.html, home.html",
 		PropertyStaticResourcesEnabled:      "true",
+		PropertyCORSEnabled:                 "true",
+		PropertyCORSAllowedOrigins:          "https://admin.example.com",
+		PropertyCORSAllowedMethods:          "GET,POST",
+		PropertyCORSAllowedHeaders:          "X-Request-ID,Content-Type",
+		PropertyCORSExposedHeaders:          "X-Trace-ID",
+		PropertyCORSAllowCredentials:        "true",
+		PropertyCORSMaxAge:                  "10m",
+		PropertyForwardedHeadersEnabled:     "true",
+		PropertyShallowETagEnabled:          "true",
+		PropertyShallowETagMaxBodyBytes:     "4096",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -66,6 +83,21 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		settings.staticResources.welcomeFiles[1] != "home.html" {
 		t.Fatalf("static resources settings = %+v", settings.staticResources)
 	}
+	if !settings.filters.cors.enabled ||
+		settings.filters.cors.config.AllowedOrigins[0] != "https://admin.example.com" ||
+		settings.filters.cors.config.AllowedMethods[1] != "POST" ||
+		settings.filters.cors.config.AllowedHeaders[0] != "X-Request-ID" ||
+		settings.filters.cors.config.ExposedHeaders[0] != "X-Trace-ID" ||
+		!settings.filters.cors.config.AllowCredentials ||
+		settings.filters.cors.config.MaxAge != 10*time.Minute {
+		t.Fatalf("cors settings = %+v", settings.filters.cors)
+	}
+	if !settings.filters.forwardedHeaders.enabled {
+		t.Fatalf("forwarded headers settings = %+v", settings.filters.forwardedHeaders)
+	}
+	if !settings.filters.shallowETag.enabled || settings.filters.shallowETag.maxBodyBytes != 4096 {
+		t.Fatalf("shallow etag settings = %+v", settings.filters.shallowETag)
+	}
 }
 
 func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
@@ -83,6 +115,10 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithMappingPattern("/option/*"),
 		WithStaticResourceLocations("resource/option"),
 		WithStaticResourcePattern("/option-static/*"),
+		WithCORS(gowebcors.Config{AllowedOrigins: []string{"https://option.example.com"}}),
+		WithForwardedHeadersEnabled(true),
+		WithShallowETagEnabled(true),
+		WithShallowETagMaxBodyBytes(512),
 		WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
 	})
 	if err != nil {
@@ -101,6 +137,13 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	}
 	if len(settings.arkhosOptions) != 1 {
 		t.Fatalf("arkhos options count = %d, want 1", len(settings.arkhosOptions))
+	}
+	if !settings.filters.cors.enabled ||
+		settings.filters.cors.config.AllowedOrigins[0] != "https://option.example.com" ||
+		!settings.filters.forwardedHeaders.enabled ||
+		!settings.filters.shallowETag.enabled ||
+		settings.filters.shallowETag.maxBodyBytes != 512 {
+		t.Fatalf("filter options did not override environment: %+v", settings.filters)
 	}
 }
 

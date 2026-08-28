@@ -24,6 +24,7 @@ type settings struct {
 	deploymentOptions []servletcontainer.DeploymentOption
 	arkhosOptions     []gbcarkhos.Option
 	staticResources   staticResourceSettings
+	filters           filterSettings
 }
 
 // WithApplicationName 设置 Web 应用名称。
@@ -178,6 +179,7 @@ func newSettings(environment coreenv.Environment, options []Option) (settings, e
 		contextPath:     DefaultContextPath,
 		mappingPattern:  DefaultMappingPattern,
 		staticResources: defaultStaticResourceSettings(),
+		filters:         defaultFilterSettings(),
 	}
 	if err := config.applyEnvironment(environment); err != nil {
 		return settings{}, err
@@ -240,6 +242,9 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 		if err := WithStaticResourceWelcomeFiles(value)(s); err != nil {
 			return err
 		}
+	}
+	if err := s.applyFilterEnvironment(environment); err != nil {
+		return err
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -211,6 +212,102 @@ goark:
 	body := requestUntilStatus(t, server.URL()+"/errors", http.StatusConflict)
 	if body != "mapped" {
 		t.Fatalf("body = %q, want mapped", body)
+	}
+}
+
+func TestAutoConfigure_whenWebFiltersConfigured_shouldApplyCorsForwardedHeadersAndETag(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+    cors:
+      enabled: true
+      allowed-origins: https://admin.example.com
+      allowed-methods: GET,POST
+      allowed-headers: X-Request-ID,Content-Type
+      exposed-headers: X-Trace-ID
+      allow-credentials: true
+      max-age: 5m
+    filters:
+      forwarded-headers:
+        enabled: true
+      shallow-etag:
+        enabled: true
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.filters", mvc.NewController("filters",
+			mvc.GET("/filters", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (map[string]string, error) {
+				ctx.Response().Header().Set("X-Trace-ID", "trace-1")
+				return map[string]string{
+					"url":    ctx.Request().RequestURL(),
+					"remote": ctx.Request().RemoteAddr(),
+				}, nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	preflight := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodOptions, serverURL+"/filters", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Origin", "https://admin.example.com")
+		request.Header.Set("Access-Control-Request-Method", http.MethodPost)
+		request.Header.Set("Access-Control-Request-Headers", "x-request-id, content-type")
+		return request, nil
+	}, http.StatusNoContent)
+	if preflight.header.Get("Access-Control-Allow-Origin") != "https://admin.example.com" ||
+		preflight.header.Get("Access-Control-Allow-Credentials") != "true" ||
+		preflight.header.Get("Access-Control-Max-Age") != "300" {
+		t.Fatalf("preflight headers = %#v", preflight.header)
+	}
+
+	first := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/filters", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Origin", "https://admin.example.com")
+		request.Header.Set("X-Forwarded-Proto", "https")
+		request.Header.Set("X-Forwarded-Host", "api.example.com")
+		request.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.2")
+		return request, nil
+	}, http.StatusOK)
+	if first.header.Get("Access-Control-Allow-Origin") != "https://admin.example.com" ||
+		first.header.Get("Access-Control-Expose-Headers") != "X-Trace-ID" ||
+		first.header.Get("ETag") == "" {
+		t.Fatalf("actual headers = %#v", first.header)
+	}
+	if !strings.Contains(first.body, `"url":"https://api.example.com/filters"`) ||
+		!strings.Contains(first.body, `"remote":"203.0.113.7"`) {
+		t.Fatalf("forwarded body = %q", first.body)
+	}
+
+	second := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/filters", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Origin", "https://admin.example.com")
+		request.Header.Set("X-Forwarded-Proto", "https")
+		request.Header.Set("X-Forwarded-Host", "api.example.com")
+		request.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.2")
+		request.Header.Set("If-None-Match", first.header.Get("ETag"))
+		return request, nil
+	}, http.StatusNotModified)
+	if second.body != "" {
+		t.Fatalf("not modified body = %q, want empty", second.body)
 	}
 }
 

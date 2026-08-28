@@ -50,6 +50,9 @@ func (c configuration) RegisterWithContext(_ context.Context, config appcontext.
 	if err := registerStaticResources(config.Registry(), resolved.staticResources); err != nil {
 		return err
 	}
+	if err := registerWebFilters(config.Registry(), resolved.filters); err != nil {
+		return err
+	}
 	return goarkcontainer.Register[*servletcontainer.Deployment](
 		config.Registry(),
 		BeanNameDeployment,
