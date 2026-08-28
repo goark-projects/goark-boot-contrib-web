@@ -18,6 +18,7 @@ Official Goark Boot starter module for web applications.
 - Arkarta web and servlet integration.
 - Arkhos as the default embedded web container through `goark.dev/gbc-arkhos`.
 - Auto-application of `goark.dev/goark/web.Configurer` beans, including MVC routes, response advice, and error mappers supplied by application code.
+- Goark Web result conventions such as `ResponseEntity[T]`, file download, streaming responses, and Server-Sent Events.
 
 ## Usage
 
@@ -44,7 +45,7 @@ func main() {
 
 Business packages contribute MVC controllers, response advice, error mappers, or other `goark.dev/goark/web.Configurer` beans.
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
-MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`; the response status, headers, and JSON body are preserved by the generated route and starter deployment.
+MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, or `SSE`; the response status, headers, JSON body, and streaming headers are preserved by the generated route and starter deployment.
 
 ## Configuration Properties
 
@@ -109,12 +110,13 @@ Goark 官方维护的 Web 应用启动器模块。
 - 集成 Arkarta Web 与 Servlet 标准。
 - 默认通过 `goark.dev/gbc-arkhos` 接入 Arkhos 嵌入式 Web 容器。
 - 自动应用业务贡献的 `goark.dev/goark/web.Configurer` Bean，包括 MVC 路由、响应增强器和错误映射器。
+- 支持 Goark Web 的 `ResponseEntity[T]`、文件下载、流式响应和 Server-Sent Events 结果约定。
 
 ## 使用方式
 
 业务包只需要贡献 MVC 控制器、响应增强器、错误映射器或其他 `goark.dev/goark/web.Configurer` Bean。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
-MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`；生成路由和本启动器部署链路会保留响应状态码、响应头和 JSON 响应体。
+MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream` 或 `SSE`；生成路由和本启动器部署链路会保留响应状态码、响应头、JSON 响应体和流式响应头。
 
 ## 配置属性
 

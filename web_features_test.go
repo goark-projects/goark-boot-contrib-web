@@ -30,6 +30,10 @@ type starterUploadRequest struct {
 	File  servletmultipart.Part `multipart:"file"`
 }
 
+type starterEventPayload struct {
+	State string `json:"state"`
+}
+
 func TestAutoConfigure_whenWebFeatureContributorsExist_shouldServeThroughArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
@@ -67,6 +71,15 @@ goark:
 						goweb.WithDownloadContentType("text/csv"),
 						goweb.WithDownloadContentLength(16),
 					), nil
+				})),
+				mvc.GET("/events", mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
+					return goweb.SSE(func(_ context.Context, writer *goweb.SSEWriter) error {
+						return writer.Send(goweb.SSEEvent{
+							ID:   "boot-1",
+							Name: "ready",
+							Data: starterEventPayload{State: "UP"},
+						})
+					}), nil
 				})),
 			)),
 		),
@@ -114,6 +127,23 @@ goark:
 	}
 	if got := downloadSnapshot.header.Get("Content-Disposition"); got != `attachment; filename=today.csv` {
 		t.Fatalf("download Content-Disposition = %q", got)
+	}
+
+	eventSnapshot := requestUntilStatusSnapshot(t, serverURL+"/events", http.StatusOK)
+	if got := eventSnapshot.header.Get("Content-Type"); got != "text/event-stream; charset=utf-8" {
+		t.Fatalf("event Content-Type = %q, want text/event-stream", got)
+	}
+	if got := eventSnapshot.header.Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("event Cache-Control = %q, want no-cache", got)
+	}
+	for _, fragment := range []string{
+		"id: boot-1\n",
+		"event: ready\n",
+		"data: {\"state\":\"UP\"}\n\n",
+	} {
+		if !strings.Contains(eventSnapshot.body, fragment) {
+			t.Fatalf("event body missing %q:\n%s", fragment, eventSnapshot.body)
+		}
 	}
 }
 
