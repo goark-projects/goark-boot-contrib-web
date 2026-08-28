@@ -1,11 +1,14 @@
 package gbcweb
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	gbcarkhos "goark.dev/gbc-arkhos"
+	goarkcontainer "goark.dev/goark/container"
 	coreenv "goark.dev/goark/core/env"
+	webclient "goark.dev/goark/web/client"
 	gowebcors "goark.dev/goark/web/cors"
 )
 
@@ -48,6 +51,12 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.errorHandling.path != DefaultErrorPath {
 		t.Fatalf("error defaults = %+v", settings.errorHandling)
 	}
+	if !settings.httpClient.enabled ||
+		settings.httpClient.timeout != DefaultHTTPClientTimeout ||
+		settings.httpClient.maxResponseBytes != DefaultHTTPClientMaxResponseBytes ||
+		len(settings.httpClient.defaultHeaders) != 0 {
+		t.Fatalf("http client defaults = %+v", settings.httpClient)
+	}
 }
 
 func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *testing.T) {
@@ -79,6 +88,11 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyErrorEndpointEnabled:        "true",
 		PropertyErrorPath:                   "/failure",
 		PropertyProblemDetailsEnabled:       "true",
+		PropertyHTTPClientEnabled:           "true",
+		PropertyHTTPClientBaseURL:           "https://api.example.com/v1",
+		PropertyHTTPClientTimeout:           "2s",
+		PropertyHTTPClientMaxResponseBytes:  "8192",
+		PropertyHTTPClientDefaultHeaders:    "X-App=goark, X-Trace=enabled",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -133,6 +147,14 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		settings.errorHandling.path != "/failure" {
 		t.Fatalf("error settings = %+v", settings.errorHandling)
 	}
+	if !settings.httpClient.enabled ||
+		settings.httpClient.baseURL != "https://api.example.com/v1" ||
+		settings.httpClient.timeout != 2*time.Second ||
+		settings.httpClient.maxResponseBytes != 8192 ||
+		settings.httpClient.defaultHeaders.Get("X-App") != "goark" ||
+		settings.httpClient.defaultHeaders.Get("X-Trace") != "enabled" {
+		t.Fatalf("http client settings = %+v", settings.httpClient)
+	}
 }
 
 func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
@@ -162,6 +184,12 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithErrorEndpointEnabled(true),
 		WithErrorPath("/option-error"),
 		WithProblemDetailsEnabled(true),
+		WithHTTPClientEnabled(true),
+		WithHTTPClientBaseURL("https://option.example.com/api"),
+		WithHTTPClientTimeout(5 * time.Second),
+		WithHTTPClientMaxResponseBytes(-1),
+		WithHTTPClientDefaultHeader("X-Option", "true"),
+		WithHTTPClientOptions(webclient.WithDefaultHeader("X-Custom", "yes")),
 		WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
 	})
 	if err != nil {
@@ -200,6 +228,14 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		settings.errorHandling.path != "/option-error" {
 		t.Fatalf("error options did not override environment: %+v", settings.errorHandling)
 	}
+	if !settings.httpClient.enabled ||
+		settings.httpClient.baseURL != "https://option.example.com/api" ||
+		settings.httpClient.timeout != 5*time.Second ||
+		settings.httpClient.maxResponseBytes != -1 ||
+		settings.httpClient.defaultHeaders.Get("X-Option") != "true" ||
+		len(settings.httpClient.options) != 1 {
+		t.Fatalf("http client options did not override environment: %+v", settings.httpClient)
+	}
 }
 
 func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProperties(t *testing.T) {
@@ -233,6 +269,87 @@ func TestNewSettings_whenContextPathIsInvalid_shouldReturnError(t *testing.T) {
 	_, err := newSettings(environment, nil)
 	if err == nil {
 		t.Fatal("expected invalid context path error")
+	}
+}
+
+func TestNewSettings_whenHTTPClientPropertiesAreInvalid_shouldReturnError(t *testing.T) {
+	tests := []struct {
+		name   string
+		values map[string]any
+	}{
+		{
+			name: "base url",
+			values: map[string]any{
+				PropertyHTTPClientBaseURL: "://bad",
+			},
+		},
+		{
+			name: "max response bytes",
+			values: map[string]any{
+				PropertyHTTPClientMaxResponseBytes: "-2",
+			},
+		},
+		{
+			name: "default headers",
+			values: map[string]any{
+				PropertyHTTPClientDefaultHeaders: "X-App",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := newSettings(newTestEnvironment(t, tt.values), nil)
+			if err == nil {
+				t.Fatal("expected invalid http client property error")
+			}
+		})
+	}
+}
+
+func TestRegisterHTTPClient_whenDisabledOrExistingBeans_shouldBackOff(t *testing.T) {
+	registry := goarkcontainer.NewRegistry()
+	if err := registerHTTPClient(registry, httpClientSettings{enabled: false}); err != nil {
+		t.Fatalf("register disabled client failed: %v", err)
+	}
+	if _, exists := registry.Definition(BeanNameHTTPClient); exists {
+		t.Fatal("disabled http client should not register client bean")
+	}
+	if _, exists := registry.Definition(BeanNameHTTPClientBuilder); exists {
+		t.Fatal("disabled http client should not register builder bean")
+	}
+
+	customBuilder := webclient.NewBuilder(webclient.WithDefaultHeader("X-Custom", "builder"))
+	if err := goarkcontainer.RegisterInstance[*webclient.Builder](registry, BeanNameHTTPClientBuilder, customBuilder); err != nil {
+		t.Fatalf("register custom builder failed: %v", err)
+	}
+	customClient, err := webclient.New(webclient.WithDefaultHeader("X-Custom", "client"))
+	if err != nil {
+		t.Fatalf("new custom client failed: %v", err)
+	}
+	if err := goarkcontainer.RegisterInstance[*webclient.Client](registry, BeanNameHTTPClient, customClient); err != nil {
+		t.Fatalf("register custom client failed: %v", err)
+	}
+	if err := registerHTTPClient(registry, defaultHTTPClientSettings()); err != nil {
+		t.Fatalf("register default client failed: %v", err)
+	}
+	runtimeContainer, err := goarkcontainer.New(registry)
+	if err != nil {
+		t.Fatalf("new runtime container failed: %v", err)
+	}
+	resolvedBuilder, err := goarkcontainer.Get[*webclient.Builder](context.Background(), runtimeContainer, BeanNameHTTPClientBuilder)
+	if err != nil {
+		t.Fatalf("resolve custom builder failed: %v", err)
+	}
+	if resolvedBuilder != customBuilder {
+		t.Fatal("default registration replaced custom builder")
+	}
+	resolvedClient, err := goarkcontainer.Get[*webclient.Client](context.Background(), runtimeContainer, BeanNameHTTPClient)
+	if err != nil {
+		t.Fatalf("resolve custom client failed: %v", err)
+	}
+	if resolvedClient != customClient {
+		t.Fatal("default registration replaced custom client")
 	}
 }
 

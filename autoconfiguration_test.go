@@ -3,8 +3,10 @@ package gbcweb_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,6 +21,7 @@ import (
 	"goark.dev/goark"
 	"goark.dev/goark/container"
 	goweb "goark.dev/goark/web"
+	webclient "goark.dev/goark/web/client"
 	"goark.dev/goark/web/mvc"
 	mvcview "goark.dev/goark/web/mvc/view"
 )
@@ -228,6 +231,81 @@ goark:
 	if snapshot.body != `{"state":"queued"}` {
 		t.Fatalf("body = %q, want entity json", snapshot.body)
 	}
+}
+
+func TestAutoConfigure_whenHTTPClientConfigured_shouldRegisterBuilderAndClient(t *testing.T) {
+	serverErrors := make(chan error, 2)
+	api := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("X-App") != "boot" {
+			failHTTPServer(serverErrors, writer, "X-App = %q, want boot", request.Header.Get("X-App"))
+			return
+		}
+		switch request.URL.Path {
+		case "/api/ping":
+			_, _ = io.WriteString(writer, `{"status":"UP"}`)
+		case "/api/builder":
+			if request.Header.Get("X-Builder") != "yes" {
+				failHTTPServer(serverErrors, writer, "X-Builder = %q, want yes", request.Header.Get("X-Builder"))
+				return
+			}
+			_, _ = io.WriteString(writer, "builder")
+		default:
+			failHTTPServer(serverErrors, writer, "path = %q", request.URL.Path)
+		}
+	}))
+	defer api.Close()
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+			gbcweb.WithHTTPClientBaseURL(api.URL+"/api"),
+			gbcweb.WithHTTPClientTimeout(2*time.Second),
+			gbcweb.WithHTTPClientMaxResponseBytes(64),
+			gbcweb.WithHTTPClientDefaultHeader("X-App", "boot"),
+		)),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	defaultClient, err := goark.Get[*webclient.Client](t.Context(), appContext, gbcweb.BeanNameHTTPClient)
+	if err != nil {
+		t.Fatalf("resolve http client failed: %v", err)
+	}
+	response, err := defaultClient.Get(t.Context(), "/ping")
+	if err != nil {
+		t.Fatalf("default client get failed: %v", err)
+	}
+	var payload map[string]string
+	if err := response.DecodeJSON(&payload); err != nil {
+		t.Fatalf("decode client response failed: %v", err)
+	}
+	if payload["status"] != "UP" {
+		t.Fatalf("payload = %#v", payload)
+	}
+
+	builder, err := goark.Get[*webclient.Builder](t.Context(), appContext, gbcweb.BeanNameHTTPClientBuilder)
+	if err != nil {
+		t.Fatalf("resolve http client builder failed: %v", err)
+	}
+	derivedClient, err := builder.DefaultHeader("X-Builder", "yes").Build()
+	if err != nil {
+		t.Fatalf("derived client build failed: %v", err)
+	}
+	derivedResponse, err := derivedClient.Get(t.Context(), "/builder")
+	if err != nil {
+		t.Fatalf("derived client get failed: %v", err)
+	}
+	if derivedResponse.BodyString() != "builder" {
+		t.Fatalf("derived body = %q, want builder", derivedResponse.BodyString())
+	}
+	assertNoHTTPServerError(t, serverErrors)
 }
 
 func TestAutoConfigure_whenHandlerReturnsError_shouldUseProblemDetails(t *testing.T) {
@@ -563,5 +641,22 @@ func assertConfigurationCount(t *testing.T, descriptors []goark.ConfigurationDes
 	}
 	if got != want {
 		t.Fatalf("configuration %q count = %d, want %d", name, got, want)
+	}
+}
+
+func failHTTPServer(errors chan<- error, writer http.ResponseWriter, format string, args ...any) {
+	select {
+	case errors <- fmt.Errorf(format, args...):
+	default:
+	}
+	http.Error(writer, "server assertion failed", http.StatusInternalServerError)
+}
+
+func assertNoHTTPServerError(t *testing.T, errors <-chan error) {
+	t.Helper()
+	select {
+	case err := <-errors:
+		t.Fatal(err)
+	default:
 	}
 }

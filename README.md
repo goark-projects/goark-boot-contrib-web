@@ -19,6 +19,7 @@ Official Goark Boot starter module for web applications.
 - Arkhos as the default embedded web container through `goark.dev/gbc-arkhos`.
 - Auto-application of `goark.dev/goark/web.Configurer` beans, including MVC routes, response advice, and error mappers supplied by application code.
 - Goark Web result conventions such as `ResponseEntity[T]`, file download, streaming responses, and Server-Sent Events.
+- Default outbound `goark.dev/goark/web/client` Builder and Client beans for Spring-style web client usage.
 
 ## Usage
 
@@ -67,6 +68,11 @@ MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `Text
 | `goark.web.mvc.view.prefix` | unset | Prefix added to logical view names. |
 | `goark.web.mvc.view.suffix` | `.html` | Suffix added to logical view names. |
 | `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | Default template response content type. |
+| `goark.web.client.enabled` | `true` | Register the default outbound Web HTTP client builder and client beans. |
+| `goark.web.client.base-url` | unset | Optional base URL used by relative outbound HTTP requests. |
+| `goark.web.client.timeout` | `30s` | Default outbound HTTP request timeout. |
+| `goark.web.client.max-response-bytes` | `16777216` | Maximum response body snapshot size. `-1` disables the limit. |
+| `goark.web.client.default-headers` | unset | Comma-separated default headers in `Name=Value` format. |
 
 Spring-compatible aliases are recognized for static resources:
 
@@ -111,6 +117,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 默认通过 `goark.dev/gbc-arkhos` 接入 Arkhos 嵌入式 Web 容器。
 - 自动应用业务贡献的 `goark.dev/goark/web.Configurer` Bean，包括 MVC 路由、响应增强器和错误映射器。
 - 支持 Goark Web 的 `ResponseEntity[T]`、文件下载、流式响应和 Server-Sent Events 结果约定。
+- 提供默认出站 `goark.dev/goark/web/client` Builder 与 Client Bean，对齐 Spring 风格 Web 客户端用法。
 
 ## 使用方式
 
@@ -138,6 +145,11 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 | `goark.web.mvc.view.prefix` | 未设置 | 逻辑视图名前缀。 |
 | `goark.web.mvc.view.suffix` | `.html` | 逻辑视图名后缀。 |
 | `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | 模板响应默认媒体类型。 |
+| `goark.web.client.enabled` | `true` | 是否注册默认出站 Web HTTP 客户端 Builder 与 Client Bean。 |
+| `goark.web.client.base-url` | 未设置 | 相对出站 HTTP 请求使用的可选基础 URL。 |
+| `goark.web.client.timeout` | `30s` | 默认出站 HTTP 请求超时。 |
+| `goark.web.client.max-response-bytes` | `16777216` | 响应体快照最大读取字节数；`-1` 表示不限制。 |
+| `goark.web.client.default-headers` | 未设置 | 默认请求头，多个值以英文逗号分隔，格式为 `Name=Value`。 |
 
 静态资源支持以下 Spring 兼容属性：
 

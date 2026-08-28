@@ -26,6 +26,7 @@ type settings struct {
 	arkhosOptions     []gbcarkhos.Option
 	staticResources   staticResourceSettings
 	viewTemplates     viewTemplateSettings
+	httpClient        httpClientSettings
 	filters           filterSettings
 	errorHandling     errorHandlingSettings
 }
@@ -256,6 +257,7 @@ func newSettings(environment coreenv.Environment, options []Option) (settings, e
 		mappingPattern:  DefaultMappingPattern,
 		staticResources: defaultStaticResourceSettings(),
 		viewTemplates:   defaultViewTemplateSettings(),
+		httpClient:      defaultHTTPClientSettings(),
 		filters:         defaultFilterSettings(),
 		errorHandling:   defaultErrorHandlingSettings(),
 	}
@@ -338,6 +340,9 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 		return err
 	}
 	if err := s.applyViewEnvironment(environment); err != nil {
+		return err
+	}
+	if err := s.applyHTTPClientEnvironment(environment); err != nil {
 		return err
 	}
 	if err := s.applyErrorEnvironment(environment); err != nil {

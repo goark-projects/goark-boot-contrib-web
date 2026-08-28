@@ -1,5 +1,7 @@
 package gbcweb
 
+import "time"
+
 const (
 	// BeanNameDeployment 是默认 Arkarta Servlet 部署 Bean 的稳定名称。
 	BeanNameDeployment = "goark.boot.web.deployment"
@@ -19,6 +21,10 @@ const (
 	BeanNameViewResolver = "goark.boot.web.viewResolver"
 	// BeanNameViewInterceptor 是默认 MVC 视图解析器拦截器 Bean 名称。
 	BeanNameViewInterceptor = "goark.boot.web.viewInterceptor"
+	// BeanNameHTTPClientBuilder 是默认 Web HTTP 客户端构建器 Bean 名称。
+	BeanNameHTTPClientBuilder = "goark.boot.web.clientBuilder"
+	// BeanNameHTTPClient 是默认 Web HTTP 客户端 Bean 名称。
+	BeanNameHTTPClient = "goark.boot.web.client"
 )
 
 const (
@@ -50,6 +56,12 @@ const (
 	DefaultViewTemplateSuffix = ".html"
 	// DefaultViewTemplateContentType 是默认模板响应媒体类型。
 	DefaultViewTemplateContentType = "text/html; charset=utf-8"
+	// DefaultHTTPClientEnabled 表示默认注册 Web HTTP 客户端 Bean。
+	DefaultHTTPClientEnabled = true
+	// DefaultHTTPClientTimeout 是默认 Web HTTP 客户端超时。
+	DefaultHTTPClientTimeout = 30 * time.Second
+	// DefaultHTTPClientMaxResponseBytes 是默认响应体快照最大读取字节数。
+	DefaultHTTPClientMaxResponseBytes int64 = 16 << 20
 )
 
 const (
@@ -113,4 +125,14 @@ const (
 	PropertyViewTemplateSuffix = "goark.web.mvc.view.suffix"
 	// PropertyViewTemplateContentType 设置 MVC 模板响应媒体类型。
 	PropertyViewTemplateContentType = "goark.web.mvc.view.content-type"
+	// PropertyHTTPClientEnabled 设置是否注册默认 Web HTTP 客户端。
+	PropertyHTTPClientEnabled = "goark.web.client.enabled"
+	// PropertyHTTPClientBaseURL 设置默认 Web HTTP 客户端基础 URL。
+	PropertyHTTPClientBaseURL = "goark.web.client.base-url"
+	// PropertyHTTPClientTimeout 设置默认 Web HTTP 客户端超时。
+	PropertyHTTPClientTimeout = "goark.web.client.timeout"
+	// PropertyHTTPClientMaxResponseBytes 设置默认 Web HTTP 客户端响应体快照上限。
+	PropertyHTTPClientMaxResponseBytes = "goark.web.client.max-response-bytes"
+	// PropertyHTTPClientDefaultHeaders 设置默认 Web HTTP 客户端请求头，格式为 Name=Value,Name2=Value2。
+	PropertyHTTPClientDefaultHeaders = "goark.web.client.default-headers"
 )
