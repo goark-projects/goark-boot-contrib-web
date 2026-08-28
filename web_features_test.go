@@ -2,7 +2,6 @@ package gbcweb_test
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	arkjson "goark.dev/arkarta/json"
 	"goark.dev/arkarta/servlet"
 	servletmultipart "goark.dev/arkarta/servlet/multipart"
 	arkweb "goark.dev/arkarta/web"
@@ -98,7 +98,7 @@ goark:
 		t.Fatalf("upload headers = %#v", uploadSnapshot.header)
 	}
 	var uploadPayload map[string]string
-	if err := json.Unmarshal([]byte(uploadSnapshot.body), &uploadPayload); err != nil {
+	if err := arkjson.Unmarshal(nil, []byte(uploadSnapshot.body), &uploadPayload); err != nil {
 		t.Fatalf("upload json invalid: %v", err)
 	}
 	if uploadPayload["title"] != "avatar" || uploadPayload["filename"] != "profile.txt" || uploadPayload["body"] != "hello" {
