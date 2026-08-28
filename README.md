@@ -80,7 +80,7 @@ Spring-compatible aliases are recognized for static resources:
 | `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
 | `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
 
-Server and multipart properties are provided by `goark.dev/gbc-arkhos`, which this starter includes by default.
+Server, multipart, and Servlet async timeout properties are provided by `goark.dev/gbc-arkhos`, which this starter includes by default.
 
 ## Development
 
@@ -151,7 +151,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 | `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
 | `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
 
-服务端监听和 multipart 属性由默认包含的 `goark.dev/gbc-arkhos` 提供。
+服务端监听、multipart 和 Servlet async 超时属性由默认包含的 `goark.dev/gbc-arkhos` 提供。
 
 ## 开发
 
