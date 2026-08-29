@@ -57,6 +57,10 @@ func registerStaticResources(registry *goarkcontainer.Registry, settings staticR
 	if len(roots) == 0 {
 		return nil
 	}
+	root := fallbackFS{roots: roots}
+	if err := registerStaticResourceURLProvider(registry, settings, root); err != nil {
+		return err
+	}
 	options := []static.Option{static.WithServletName(settings.servletName)}
 	if settings.welcomeFilesSet {
 		options = append(options, static.WithWelcomeFiles(settings.welcomeFiles...))
@@ -70,7 +74,27 @@ func registerStaticResources(registry *goarkcontainer.Registry, settings staticR
 	if settings.fixedVersion != "" {
 		options = append(options, static.WithFixedVersion(settings.fixedVersion))
 	}
-	return static.Register(registry, BeanNameStaticResources, settings.pattern, fallbackFS{roots: roots}, options...)
+	return static.Register(registry, BeanNameStaticResources, settings.pattern, root, options...)
+}
+
+func registerStaticResourceURLProvider(registry *goarkcontainer.Registry, settings staticResourceSettings, root fs.FS) error {
+	if _, exists := registry.Definition(BeanNameStaticResourceURLProvider); exists {
+		return nil
+	}
+	options := []static.URLProviderOption{
+		static.WithURLPathPrefix(staticResourceURLPrefix(settings.pattern)),
+	}
+	if settings.contentVersion {
+		options = append(options, static.WithURLContentVersioning())
+	}
+	if settings.fixedVersion != "" {
+		options = append(options, static.WithURLFixedVersion(settings.fixedVersion))
+	}
+	provider, err := static.NewURLProvider(root, options...)
+	if err != nil {
+		return err
+	}
+	return goarkcontainer.RegisterInstance[static.ResourceURLProvider](registry, BeanNameStaticResourceURLProvider, provider)
 }
 
 func openStaticResourceRoots(locations []string) ([]fs.FS, error) {
@@ -116,6 +140,20 @@ func (f fallbackFS) Open(name string) (fs.File, error) {
 		return nil, last
 	}
 	return nil, fs.ErrNotExist
+}
+
+func staticResourceURLPrefix(pattern string) string {
+	pattern = strings.TrimSpace(strings.ReplaceAll(pattern, "\\", "/"))
+	if pattern == "" || pattern == "/" || strings.HasPrefix(pattern, "*.") {
+		return ""
+	}
+	if strings.HasSuffix(pattern, "/*") {
+		return strings.TrimRight(strings.TrimSuffix(pattern, "/*"), "/")
+	}
+	if strings.Contains(pattern, "*") {
+		return ""
+	}
+	return strings.TrimRight(pattern, "/")
 }
 
 func normalizeStaticResourceLocations(locations []string) ([]string, error) {

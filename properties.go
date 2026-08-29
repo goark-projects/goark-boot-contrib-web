@@ -7,6 +7,8 @@ const (
 	BeanNameDeployment = "goark.boot.web.deployment"
 	// BeanNameStaticResources 是默认静态资源配置器 Bean 名称。
 	BeanNameStaticResources = "goark.boot.web.staticResources"
+	// BeanNameStaticResourceURLProvider 是默认静态资源 URL 提供器 Bean 名称。
+	BeanNameStaticResourceURLProvider = "goark.boot.web.staticResourceURLProvider"
 	// BeanNameCORSFilter 是默认 CORS 过滤器 Bean 名称。
 	BeanNameCORSFilter = "goark.boot.web.corsFilter"
 	// BeanNameForwardedHeadersFilter 是默认代理头过滤器 Bean 名称。

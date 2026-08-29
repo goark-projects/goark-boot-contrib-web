@@ -367,6 +367,26 @@ func TestRegisterHTTPClient_whenDisabledOrExistingBeans_shouldBackOff(t *testing
 	}
 }
 
+func TestStaticResourceURLPrefix(t *testing.T) {
+	tests := []struct {
+		pattern string
+		want    string
+	}{
+		{pattern: "/static/*", want: "/static"},
+		{pattern: "/assets/", want: "/assets"},
+		{pattern: "/", want: ""},
+		{pattern: "*.css", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.pattern, func(t *testing.T) {
+			if got := staticResourceURLPrefix(tt.pattern); got != tt.want {
+				t.Fatalf("prefix = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func newTestEnvironment(t *testing.T, values map[string]any) coreenv.Environment {
 	t.Helper()
 

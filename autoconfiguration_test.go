@@ -168,6 +168,24 @@ goark:
 	if body := requestUntilOK(t, serverURL+"/assets/"+versioned); body != "configured static" {
 		t.Fatalf("versioned static body = %q", body)
 	}
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	provider, err := goark.Get[gowebstatic.ResourceURLProvider](t.Context(), appContext, gbcweb.BeanNameStaticResourceURLProvider)
+	if err != nil {
+		t.Fatalf("resolve static resource url provider failed: %v", err)
+	}
+	resourceURL, err := provider.URL(t.Context(), "app.txt")
+	if err != nil {
+		t.Fatalf("provider URL failed: %v", err)
+	}
+	if !strings.HasPrefix(resourceURL, "/assets/v1/app-") || !strings.HasSuffix(resourceURL, ".txt") {
+		t.Fatalf("resource url = %q, want versioned assets URL", resourceURL)
+	}
+	if body := requestUntilOK(t, serverURL+resourceURL); body != "configured static" {
+		t.Fatalf("provider static body = %q", body)
+	}
 }
 
 func TestAutoConfigure_whenDefaultTemplateExists_shouldRenderMVCView(t *testing.T) {
