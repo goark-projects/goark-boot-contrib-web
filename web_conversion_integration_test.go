@@ -1,0 +1,92 @@
+package gbcweb_test
+
+import (
+	"context"
+	"net/http"
+	"testing"
+
+	arkjson "goark.dev/arkarta/json"
+	arkweb "goark.dev/arkarta/web"
+	"goark.dev/boot"
+	gbcarkhos "goark.dev/gbc-arkhos"
+	"goark.dev/gbc-web"
+	"goark.dev/goark"
+	"goark.dev/goark/container"
+	"goark.dev/goark/core/convert"
+	"goark.dev/goark/web/mvc"
+)
+
+type starterTenantID struct {
+	value string
+}
+
+type starterConversionPayload struct {
+	Page   int    `json:"page"`
+	Tenant string `json:"tenant"`
+}
+
+func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			starterConversionConfiguration{},
+			mvc.NewConfiguration("test.mvc.conversion", mvc.NewController("conversion",
+				mvc.GET("/conversion", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterConversionPayload, error) {
+					page, err := mvc.RequestParamInt(ctx, "page")
+					if err != nil {
+						return starterConversionPayload{}, err
+					}
+					tenant, err := mvc.RequestParamAs[starterTenantID](ctx, "tenant")
+					if err != nil {
+						return starterConversionPayload{}, err
+					}
+					return starterConversionPayload{
+						Page:   page,
+						Tenant: tenant.value,
+					}, nil
+				})),
+			)),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/conversion?page=abcd&tenant=blue", http.StatusOK)
+	var payload starterConversionPayload
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("conversion json invalid: %v", err)
+	}
+	if payload.Page != 104 || payload.Tenant != "tenant:blue" {
+		t.Fatalf("payload = %#v, want converted parameters", payload)
+	}
+}
+
+type starterConversionConfiguration struct{}
+
+func (starterConversionConfiguration) Name() string {
+	return "test.web.conversion"
+}
+
+func (starterConversionConfiguration) Order() int {
+	return 0
+}
+
+func (c starterConversionConfiguration) Register(ctx context.Context, registry *container.Registry) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+func (starterConversionConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
+	if err := gbcweb.RegisterConverter(config.Registry(), "testStringIntConverter", convert.ConverterFunc[string, int](func(value string) (int, error) {
+		return len(value) + 100, nil
+	})); err != nil {
+		return err
+	}
+	return gbcweb.RegisterConverter(config.Registry(), "testStringTenantIDConverter", convert.ConverterFunc[string, starterTenantID](func(value string) (starterTenantID, error) {
+		return starterTenantID{value: "tenant:" + value}, nil
+	}))
+}

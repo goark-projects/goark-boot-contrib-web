@@ -15,6 +15,8 @@ func TestModuleMetadata(t *testing.T) {
 		{name: "message reader bean", got: BeanNameMessageReader, want: "goark.boot.web.messageReader"},
 		{name: "message writer bean", got: BeanNameMessageWriter, want: "goark.boot.web.messageWriter"},
 		{name: "message io configurer bean", got: BeanNameMessageIOConfigurer, want: "goark.boot.web.messageIOConfigurer"},
+		{name: "conversion service bean", got: BeanNameConversionService, want: "goark.boot.web.mvc.conversionService"},
+		{name: "conversion configurer bean", got: BeanNameConversionConfigurer, want: "goark.boot.web.mvc.conversionConfigurer"},
 		{name: "http client builder bean", got: BeanNameHTTPClientBuilder, want: "goark.boot.web.clientBuilder"},
 		{name: "http client bean", got: BeanNameHTTPClient, want: "goark.boot.web.client"},
 	}
