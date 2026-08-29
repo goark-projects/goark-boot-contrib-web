@@ -37,7 +37,7 @@ Official Goark Boot starter module for web applications.
 - Optional hidden HTTP method filter for HTML form method override.
 - Default form content filter for PUT, PATCH, and DELETE URL-encoded request parameters.
 - WebSocket Endpoint registration backed by Arkarta Servlet Upgrade and the default Arkhos embedded container.
-- Goark MVC request mapping conditions, including consumes/produces negotiation for JSON-compatible vendor media types.
+- Goark MVC request mapping conditions, including controller-level inheritance and consumes/produces negotiation for JSON-compatible vendor media types.
 - Default outbound `goark.dev/goark/web/client` Builder and Client beans for Spring-style JSON, form, and multipart web client usage.
 - Ordered `HTTPClientBuilderCustomizer` extension points for application and starter-level outbound client defaults.
 
@@ -196,7 +196,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 支持可选隐藏 HTTP 方法过滤器，用于 HTML 表单方法覆盖。
 - 默认启用表单内容过滤器，让 PUT、PATCH 和 DELETE 的 URL 编码请求体可参与参数绑定。
 - 支持基于 Arkarta Servlet Upgrade 和默认 Arkhos 嵌入式容器的 WebSocket Endpoint 注册。
-- 支持 Goark MVC 请求映射条件，包括 consumes/produces 以及 JSON 兼容厂商媒体类型协商。
+- 支持 Goark MVC 请求映射条件，包括控制器级继承、consumes/produces 以及 JSON 兼容厂商媒体类型协商。
 - 提供默认出站 `goark.dev/goark/web/client` Builder 与 Client Bean，对齐 Spring 风格 JSON、表单和 multipart Web 客户端用法。
 - 提供有序 `HTTPClientBuilderCustomizer` 扩展点，支持业务和其他 starter 定制出站客户端默认行为。
 
