@@ -3,6 +3,7 @@ package gbcweb
 import (
 	"context"
 
+	arkweb "goark.dev/arkarta/web"
 	goarkcontainer "goark.dev/goark/container"
 	goweb "goark.dev/goark/web"
 	"goark.dev/goark/web/message"
@@ -28,6 +29,11 @@ func RegisterMessageWriteConverter(registry *goarkcontainer.Registry, name strin
 // RegisterRequestBodyAdvice 注册请求体读取增强器 Bean。
 func RegisterRequestBodyAdvice(registry *goarkcontainer.Registry, name string, advice message.ReadAdvice, options ...goarkcontainer.Option) error {
 	return goarkcontainer.RegisterInstance[message.ReadAdvice](registry, name, advice, options...)
+}
+
+// RegisterResponseAdvice 注册响应体写出增强器 Bean。
+func RegisterResponseAdvice(registry *goarkcontainer.Registry, name string, advice arkweb.ResponseAdvice, options ...goarkcontainer.Option) error {
+	return goarkcontainer.RegisterInstance[arkweb.ResponseAdvice](registry, name, advice, options...)
 }
 
 func registerMessageIO(registry *goarkcontainer.Registry) error {
@@ -84,15 +90,21 @@ func newMessageIOConfigurer(ctx context.Context, resolver goarkcontainer.Resolve
 	if err != nil {
 		return nil, err
 	}
+	advice, err := goarkcontainer.GetAllByType[arkweb.ResponseAdvice](ctx, resolver)
+	if err != nil {
+		return nil, err
+	}
 	return messageIOConfigurer{
-		reader: reader,
-		writer: writer,
+		reader:         reader,
+		writer:         writer,
+		responseAdvice: advice,
 	}, nil
 }
 
 type messageIOConfigurer struct {
-	reader message.Reader
-	writer message.Writer
+	reader         message.Reader
+	writer         message.Writer
+	responseAdvice []arkweb.ResponseAdvice
 }
 
 func (c messageIOConfigurer) ConfigureWeb(ctx context.Context, registry *goweb.Registry) error {
@@ -104,5 +116,8 @@ func (c messageIOConfigurer) ConfigureWeb(ctx context.Context, registry *goweb.R
 	}
 	registry.UseMessageReader(c.reader)
 	registry.UseMessageWriter(c.writer)
+	for _, advice := range c.responseAdvice {
+		registry.UseResponseAdvice(advice)
+	}
 	return nil
 }

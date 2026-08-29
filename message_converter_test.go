@@ -168,6 +168,47 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenResponseAdviceBeanExists_shouldApplyToMVCResponseBody(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root+"/app.yml", `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")))),
+		boot.WithConfiguration(
+			starterResponseAdviceConfiguration{},
+			mvc.NewConfiguration("test.web.response-advice.mvc", mvc.NewRestController("profiles",
+				mvc.GET("/profiles/current", mvc.ResponseBody(http.StatusOK, func(_ *arkweb.Context) (map[string]string, error) {
+					return map[string]string{"name": "goark"}, nil
+				})),
+			)),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, starterServerURL(t, app)+"/profiles/current", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", message.MediaTypeJSON)
+		return request, nil
+	}, http.StatusAccepted)
+
+	if snapshot.body != `{"name":"goark-advised"}` {
+		t.Fatalf("body = %q, want advised JSON body", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenFormBodyExists_shouldUseDefaultMessageConverters(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
@@ -253,6 +294,26 @@ func (starterRequestBodyAdviceConfiguration) RegisterWithContext(_ context.Conte
 			return nil
 		},
 	}, container.WithOrder(-100))
+}
+
+type starterResponseAdviceConfiguration struct{}
+
+func (starterResponseAdviceConfiguration) Name() string {
+	return "test.web.response-advice"
+}
+
+func (starterResponseAdviceConfiguration) Order() int {
+	return 0
+}
+
+func (c starterResponseAdviceConfiguration) Register(ctx context.Context, registry *container.Registry) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+func (starterResponseAdviceConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
+	return gbcweb.RegisterResponseAdvice(config.Registry(), "testStarterResponseAdvice", arkweb.ResponseAdviceFunc(func(_ *arkweb.Context, _ arkweb.Result) (arkweb.Result, error) {
+		return arkweb.JSON(http.StatusAccepted, map[string]string{"name": "goark-advised"}), nil
+	}), container.WithOrder(-100))
 }
 
 var _ goweb.MessageConverter = starterTokenConverter{}
