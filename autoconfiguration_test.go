@@ -287,6 +287,44 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenMVCResponseStatusExists_shouldApplyDefaultStatus(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.response-status", mvc.NewRestController("api",
+			mvc.GET("/api/jobs/accepted", mvc.ResponseStatus(http.StatusAccepted, mvc.Return(0, func(_ *arkweb.Context) (string, error) {
+				return "accepted", nil
+			}))),
+			mvc.GET("/api/jobs/empty", mvc.ResponseStatus(http.StatusAccepted, mvc.NoContent(func(_ *arkweb.Context) error {
+				return nil
+			}))),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	bodySnapshot := requestUntilStatusSnapshot(t, serverURL+"/api/jobs/accepted", http.StatusAccepted)
+	if bodySnapshot.body != "accepted" {
+		t.Fatalf("response status body = %q, want accepted", bodySnapshot.body)
+	}
+	emptySnapshot := requestUntilStatusSnapshot(t, serverURL+"/api/jobs/empty", http.StatusAccepted)
+	if emptySnapshot.body != "" {
+		t.Fatalf("response status empty body = %q, want empty", emptySnapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenRestControllerAdviceExists_shouldMapErrors(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
