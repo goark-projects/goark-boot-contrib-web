@@ -25,6 +25,16 @@ type starterConversionPayload struct {
 	Tenant string `json:"tenant"`
 }
 
+type starterSearchCriteria struct {
+	Page   int             `form:"page"`
+	Tenant starterTenantID `form:"tenant"`
+}
+
+type starterSearchPayload struct {
+	Page   int    `json:"page"`
+	Tenant string `json:"tenant"`
+}
+
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
 	app, err := boot.Run(
 		t.Context(),
@@ -48,6 +58,16 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 						Tenant: tenant.value,
 					}, nil
 				})),
+				mvc.GET("/search", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterSearchPayload, error) {
+					criteria, err := mvc.ModelAttribute[starterSearchCriteria](ctx)
+					if err != nil {
+						return starterSearchPayload{}, err
+					}
+					return starterSearchPayload{
+						Page:   criteria.Page,
+						Tenant: criteria.Tenant.value,
+					}, nil
+				})),
 			)),
 		),
 	)
@@ -63,6 +83,15 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 	}
 	if payload.Page != 104 || payload.Tenant != "tenant:blue" {
 		t.Fatalf("payload = %#v, want converted parameters", payload)
+	}
+
+	searchSnapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/search?page=abcde&tenant=green", http.StatusOK)
+	var searchPayload starterSearchPayload
+	if err := arkjson.Unmarshal(nil, []byte(searchSnapshot.body), &searchPayload); err != nil {
+		t.Fatalf("search json invalid: %v", err)
+	}
+	if searchPayload.Page != 105 || searchPayload.Tenant != "tenant:green" {
+		t.Fatalf("search payload = %#v, want converted model attribute", searchPayload)
 	}
 }
 
