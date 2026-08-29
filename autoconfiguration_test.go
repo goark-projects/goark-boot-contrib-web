@@ -240,6 +240,42 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenMVCViewControllerExists_shouldRenderTemplate(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "ready.html"), "<h1>ready</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.view-controller", mvc.NewController("viewControllers",
+			mvc.ViewController("/ready", "ready", mvc.WithViewControllerStatus(http.StatusAccepted)),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/ready", http.StatusAccepted)
+	if snapshot.header.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want html", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != "<h1>ready</h1>" {
+		t.Fatalf("view body = %q, want rendered html", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenMVCModelViewExists_shouldRenderTemplateModel(t *testing.T) {
 	root := t.TempDir()
 	resource := filepath.Join(root, "resource")
