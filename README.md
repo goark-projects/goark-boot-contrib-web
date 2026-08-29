@@ -21,6 +21,7 @@ Official Goark Boot starter module for web applications.
 - Goark Web result conventions such as `ResponseEntity[T]`, file download, streaming responses, and Server-Sent Events.
 - Conditional request support for ETag and `Last-Modified` based 304 responses.
 - Path-scoped Web interceptors and Servlet filters for Spring MVC style include/exclude request chains.
+- WebSocket Endpoint registration backed by Arkarta Servlet Upgrade and the default Arkhos embedded container.
 - Goark MVC request mapping conditions, including consumes/produces negotiation for JSON-compatible vendor media types.
 - Default outbound `goark.dev/goark/web/client` Builder and Client beans for Spring-style JSON, form, and multipart web client usage.
 - Ordered `HTTPClientBuilderCustomizer` extension points for application and starter-level outbound client defaults.
@@ -54,6 +55,7 @@ MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `Text
 Routes can call `goark.dev/goark/web.CheckNotModified` before building an expensive body to honor `If-None-Match` and `If-Modified-Since` requests.
 Handlers can return `goark.dev/goark/web.NewStatusError` to produce Spring-style status errors through the default Problem Details mapper.
 Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, cookies, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
+Applications that need bidirectional WebSocket endpoints can register them with `gbcweb.RegisterWebSocketEndpoint`; the starter contributes the endpoint as a Goark Web configurer and the default Arkhos deployment handles the Servlet upgrade.
 
 ## Configuration Properties
 
@@ -130,6 +132,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 支持 Goark Web 的 `ResponseEntity[T]`、文件下载、流式响应和 Server-Sent Events 结果约定。
 - 支持基于 ETag 和 `Last-Modified` 的条件请求，命中时返回 304。
 - 支持带路径作用域的 Web 拦截器和 Servlet 过滤器，对齐 Spring MVC 风格 include/exclude 请求链。
+- 支持基于 Arkarta Servlet Upgrade 和默认 Arkhos 嵌入式容器的 WebSocket Endpoint 注册。
 - 支持 Goark MVC 请求映射条件，包括 consumes/produces 以及 JSON 兼容厂商媒体类型协商。
 - 提供默认出站 `goark.dev/goark/web/client` Builder 与 Client Bean，对齐 Spring 风格 JSON、表单和 multipart Web 客户端用法。
 - 提供有序 `HTTPClientBuilderCustomizer` 扩展点，支持业务和其他 starter 定制出站客户端默认行为。
@@ -142,6 +145,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 路由可以在构造高成本响应体前调用 `goark.dev/goark/web.CheckNotModified`，以处理 `If-None-Match` 和 `If-Modified-Since` 请求。
 处理器可以返回 `goark.dev/goark/web.NewStatusError`，由默认 Problem Details 映射器输出对齐 Spring 风格的状态错误。
 业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、Cookie、拦截器、编解码器或底层传输。
+需要双向通信的业务可以通过 `gbcweb.RegisterWebSocketEndpoint` 注册 WebSocket 端点；本启动器会将端点贡献为 Goark Web 配置器，并由默认 Arkhos 部署处理 Servlet Upgrade。
 
 ## 配置属性
 
