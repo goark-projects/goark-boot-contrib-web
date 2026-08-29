@@ -93,6 +93,18 @@ type starterBinderInput struct {
 	Metadata map[string]string     `form:"metadata" json:"metadata"`
 }
 
+type starterPreferenceProfile struct {
+	Subscribed bool `form:"subscribed" json:"subscribed"`
+}
+
+type starterPreferenceInput struct {
+	Theme   string                    `form:"theme" json:"theme"`
+	Notify  *bool                     `form:"notify" json:"notify"`
+	Confirm *bool                     `form:"confirm" json:"confirm"`
+	Profile *starterPreferenceProfile `form:"profile" json:"profile"`
+	Tags    []string                  `form:"tags" json:"tags"`
+}
+
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -140,6 +152,18 @@ type starterBinderPayload struct {
 	ProfileAdmin bool                `json:"profileAdmin"`
 	Roles        []starterBinderRole `json:"roles"`
 	Metadata     map[string]string   `json:"metadata"`
+}
+
+type starterPreferencePayload struct {
+	Theme      string `json:"theme"`
+	NotifySet  bool   `json:"notifySet"`
+	Notify     bool   `json:"notify"`
+	ConfirmSet bool   `json:"confirmSet"`
+	Confirm    bool   `json:"confirm"`
+	ProfileSet bool   `json:"profileSet"`
+	Subscribed bool   `json:"subscribed"`
+	TagsNil    bool   `json:"tagsNil"`
+	TagsLength int    `json:"tagsLength"`
 }
 
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
@@ -430,6 +454,60 @@ func TestAutoConfigure_whenInitBinderFieldFiltersExist_shouldBindModelAttributes
 	}
 }
 
+func TestAutoConfigure_whenFieldPrefixesExist_shouldBindModelAttributesThroughArkhos(t *testing.T) {
+	defaultController := mvc.NewRestController("starter-field-prefix-default",
+		mvc.GET("/field-prefix/default", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterPreferencePayload, error) {
+			input, err := mvc.ModelAttribute[starterPreferenceInput](ctx)
+			if err != nil {
+				return starterPreferencePayload{}, err
+			}
+			return starterPreferencePayloadFromInput(input), nil
+		})),
+	)
+	customController := mvc.NewRestController("starter-field-prefix-custom",
+		mvc.GET("/field-prefix/custom", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterPreferencePayload, error) {
+			input, err := mvc.ModelAttribute[starterPreferenceInput](ctx)
+			if err != nil {
+				return starterPreferencePayload{}, err
+			}
+			return starterPreferencePayloadFromInput(input), nil
+		})),
+	).WithInitBinders(mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
+		if err := binder.SetFieldDefaultPrefix("~"); err != nil {
+			return err
+		}
+		return binder.SetFieldMarkerPrefix("__")
+	}))
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.field-prefixes", defaultController, customController),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	baseURL := starterServerURL(t, app)
+	defaultSnapshot := requestUntilStatusSnapshot(t, baseURL+"/field-prefix/default?!theme=dark&_notify=on&confirm=true&_confirm=on&_profile.subscribed=on&_tags=on", http.StatusOK)
+	var defaultPayload starterPreferencePayload
+	if err := arkjson.Unmarshal(nil, []byte(defaultSnapshot.body), &defaultPayload); err != nil {
+		t.Fatalf("default field prefix json invalid: %v", err)
+	}
+	assertStarterPreferencePayload(t, defaultPayload)
+
+	customSnapshot := requestUntilStatusSnapshot(t, baseURL+"/field-prefix/custom?~theme=dark&__notify=on&confirm=true&__confirm=on&__profile.subscribed=on&__tags=on", http.StatusOK)
+	var customPayload starterPreferencePayload
+	if err := arkjson.Unmarshal(nil, []byte(customSnapshot.body), &customPayload); err != nil {
+		t.Fatalf("custom field prefix json invalid: %v", err)
+	}
+	assertStarterPreferencePayload(t, customPayload)
+}
+
 func TestAutoConfigure_whenControllerAdviceInitBinderExists_shouldUseScopedConvertersThroughArkhos(t *testing.T) {
 	advice := mvc.NewRestControllerAdvice("starter-global-binders").WithInitBinders(
 		mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
@@ -532,4 +610,40 @@ func starterBinderPayloadFromInput(input starterBinderInput) starterBinderPayloa
 		out.ProfileAdmin = input.Profile.Admin
 	}
 	return out
+}
+
+func starterPreferencePayloadFromInput(input starterPreferenceInput) starterPreferencePayload {
+	out := starterPreferencePayload{
+		Theme:      input.Theme,
+		TagsNil:    input.Tags == nil,
+		TagsLength: len(input.Tags),
+	}
+	if input.Notify != nil {
+		out.NotifySet = true
+		out.Notify = *input.Notify
+	}
+	if input.Confirm != nil {
+		out.ConfirmSet = true
+		out.Confirm = *input.Confirm
+	}
+	if input.Profile != nil {
+		out.ProfileSet = true
+		out.Subscribed = input.Profile.Subscribed
+	}
+	return out
+}
+
+func assertStarterPreferencePayload(t *testing.T, payload starterPreferencePayload) {
+	t.Helper()
+	if payload.Theme != "dark" ||
+		!payload.NotifySet ||
+		payload.Notify ||
+		!payload.ConfirmSet ||
+		!payload.Confirm ||
+		!payload.ProfileSet ||
+		payload.Subscribed ||
+		payload.TagsNil ||
+		payload.TagsLength != 0 {
+		t.Fatalf("payload = %#v, want field prefix binding", payload)
+	}
 }
