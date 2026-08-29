@@ -15,6 +15,8 @@ const (
 	BeanNameForwardedHeadersFilter = "goark.boot.web.forwardedHeadersFilter"
 	// BeanNameShallowETagFilter 是默认浅 ETag 过滤器 Bean 名称。
 	BeanNameShallowETagFilter = "goark.boot.web.shallowETagFilter"
+	// BeanNameHiddenHTTPMethodFilter 是默认隐藏 HTTP 方法过滤器 Bean 名称。
+	BeanNameHiddenHTTPMethodFilter = "goark.boot.web.hiddenHTTPMethodFilter"
 	// BeanNameProblemDetailsMapper 是默认 Problem Details 错误映射器 Bean 名称。
 	BeanNameProblemDetailsMapper = "goark.boot.web.problemDetailsMapper"
 	// BeanNameErrorEndpoint 是默认错误端点配置器 Bean 名称。
@@ -66,6 +68,8 @@ const (
 	DefaultStaticResourceFixedVersion = ""
 	// DefaultShallowETagMaxBodyBytes 是浅 ETag 默认最大缓存体积。
 	DefaultShallowETagMaxBodyBytes int64 = 1 << 20
+	// DefaultHiddenHTTPMethodFilterEnabled 表示默认关闭隐藏 HTTP 方法过滤器。
+	DefaultHiddenHTTPMethodFilterEnabled = false
 	// DefaultErrorPath 是默认 Boot 风格错误端点路径。
 	DefaultErrorPath = "/error"
 	// DefaultViewTemplatesEnabled 表示默认启用模板视图约定。
@@ -133,6 +137,8 @@ const (
 	PropertyShallowETagEnabled = "goark.web.filters.shallow-etag.enabled"
 	// PropertyShallowETagMaxBodyBytes 设置浅 ETag 最大缓存体积。
 	PropertyShallowETagMaxBodyBytes = "goark.web.filters.shallow-etag.max-body-bytes"
+	// PropertyHiddenHTTPMethodFilterEnabled 设置是否启用隐藏 HTTP 方法过滤器。
+	PropertyHiddenHTTPMethodFilterEnabled = "goark.web.filters.hidden-method.enabled"
 	// PropertyErrorEndpointEnabled 设置是否注册默认错误端点。
 	PropertyErrorEndpointEnabled = "goark.web.error.enabled"
 	// PropertyErrorPath 设置默认错误端点路径。

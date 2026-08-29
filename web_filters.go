@@ -33,14 +33,17 @@ const (
 	propertySpringForwardedHeadersEnabled      = "server.forward-headers-strategy"
 	propertySpringShallowETagEnabled           = "spring.web.shallow-etag.enabled"
 	propertySpringShallowETagMaxBodyBytes      = "spring.web.shallow-etag.max-body-bytes"
+	propertySpringHiddenMethodEnabled          = "spring.mvc.hiddenmethod.filter.enabled"
 	orderForwardedHeadersFilter                = -300
 	orderCORSFilter                            = -200
+	orderHiddenHTTPMethodFilter                = -100
 	orderShallowETagFilter                     = 100
 )
 
 type filterSettings struct {
 	cors             corsFilterSettings
 	forwardedHeaders forwardedHeadersSettings
+	hiddenMethod     hiddenMethodSettings
 	shallowETag      shallowETagSettings
 }
 
@@ -59,9 +62,15 @@ type shallowETagSettings struct {
 	maxBodyBytes int64
 }
 
+type hiddenMethodSettings struct {
+	enabled bool
+	options []gowebfilter.HiddenMethodOption
+}
+
 func defaultFilterSettings() filterSettings {
 	return filterSettings{
-		shallowETag: shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
+		hiddenMethod: hiddenMethodSettings{enabled: DefaultHiddenHTTPMethodFilterEnabled},
+		shallowETag:  shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
 	}
 }
 
@@ -107,6 +116,24 @@ func WithShallowETagMaxBodyBytes(size int64) Option {
 			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "shallow etag max body bytes %d must be >= 0", size)
 		}
 		settings.filters.shallowETag.maxBodyBytes = size
+		return nil
+	}
+}
+
+// WithHiddenHTTPMethodFilterEnabled 设置是否启用隐藏 HTTP 方法过滤器。
+func WithHiddenHTTPMethodFilterEnabled(enabled bool) Option {
+	return func(settings *settings) error {
+		settings.filters.hiddenMethod.enabled = enabled
+		return nil
+	}
+}
+
+// WithHiddenHTTPMethodFilterOptions 设置隐藏 HTTP 方法过滤器选项并启用过滤器。
+func WithHiddenHTTPMethodFilterOptions(options ...gowebfilter.HiddenMethodOption) Option {
+	copied := append([]gowebfilter.HiddenMethodOption(nil), options...)
+	return func(settings *settings) error {
+		settings.filters.hiddenMethod.options = append(settings.filters.hiddenMethod.options, copied...)
+		settings.filters.hiddenMethod.enabled = true
 		return nil
 	}
 }
@@ -191,6 +218,13 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		}
 		s.filters.shallowETag.maxBodyBytes = size
 	}
+	if value, ok := firstProperty(environment, PropertyHiddenHTTPMethodFilterEnabled, propertySpringHiddenMethodEnabled); ok {
+		enabled, err := parseBoolProperty(PropertyHiddenHTTPMethodFilterEnabled, value)
+		if err != nil {
+			return err
+		}
+		s.filters.hiddenMethod.enabled = enabled
+	}
 	return nil
 }
 
@@ -206,6 +240,13 @@ func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettin
 			return err
 		}
 		if err := goweb.RegisterFilter(registry, BeanNameCORSFilter, filter, goarkcontainer.WithOrder(orderCORSFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.hiddenMethod.enabled {
+		if err := goweb.RegisterFilter(registry, BeanNameHiddenHTTPMethodFilter, gowebfilter.HiddenHTTPMethod(
+			settings.hiddenMethod.options...,
+		), goarkcontainer.WithOrder(orderHiddenHTTPMethodFilter)); err != nil {
 			return err
 		}
 	}

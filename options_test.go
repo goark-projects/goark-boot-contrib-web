@@ -10,6 +10,7 @@ import (
 	coreenv "goark.dev/goark/core/env"
 	webclient "goark.dev/goark/web/client"
 	gowebcors "goark.dev/goark/web/cors"
+	gowebfilter "goark.dev/goark/web/filter"
 )
 
 func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
@@ -39,6 +40,7 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 	}
 	if settings.filters.cors.enabled ||
 		settings.filters.forwardedHeaders.enabled ||
+		settings.filters.hiddenMethod.enabled ||
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
 	}
@@ -89,6 +91,7 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyForwardedHeadersEnabled:                "true",
 		PropertyShallowETagEnabled:                     "true",
 		PropertyShallowETagMaxBodyBytes:                "4096",
+		PropertyHiddenHTTPMethodFilterEnabled:          "true",
 		PropertyErrorEndpointEnabled:                   "true",
 		PropertyErrorPath:                              "/failure",
 		PropertyProblemDetailsEnabled:                  "true",
@@ -148,6 +151,9 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.shallowETag.enabled || settings.filters.shallowETag.maxBodyBytes != 4096 {
 		t.Fatalf("shallow etag settings = %+v", settings.filters.shallowETag)
 	}
+	if !settings.filters.hiddenMethod.enabled {
+		t.Fatalf("hidden method settings = %+v", settings.filters.hiddenMethod)
+	}
 	if !settings.errorHandling.enabled ||
 		!settings.errorHandling.problemDetailsEnabled ||
 		settings.errorHandling.path != "/failure" {
@@ -189,6 +195,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithForwardedHeadersEnabled(true),
 		WithShallowETagEnabled(true),
 		WithShallowETagMaxBodyBytes(512),
+		WithHiddenHTTPMethodFilterEnabled(true),
+		WithHiddenHTTPMethodFilterOptions(gowebfilter.WithHiddenMethodParameter("http_method")),
 		WithErrorEndpointEnabled(true),
 		WithErrorPath("/option-error"),
 		WithProblemDetailsEnabled(true),
@@ -229,6 +237,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	if !settings.filters.cors.enabled ||
 		settings.filters.cors.config.AllowedOrigins[0] != "https://option.example.com" ||
 		!settings.filters.forwardedHeaders.enabled ||
+		!settings.filters.hiddenMethod.enabled ||
+		len(settings.filters.hiddenMethod.options) != 1 ||
 		!settings.filters.shallowETag.enabled ||
 		settings.filters.shallowETag.maxBodyBytes != 512 {
 		t.Fatalf("filter options did not override environment: %+v", settings.filters)
@@ -272,6 +282,21 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		!settings.staticResources.contentVersion ||
 		settings.staticResources.fixedVersion != "v2" {
 		t.Fatalf("spring static settings = %+v", settings.staticResources)
+	}
+}
+
+func TestNewSettings_whenSpringHiddenMethodPropertyExists_shouldApplyCompatibleProperty(t *testing.T) {
+	environment := newTestEnvironment(t, map[string]any{
+		propertySpringHiddenMethodEnabled: "true",
+	})
+
+	settings, err := newSettings(environment, nil)
+	if err != nil {
+		t.Fatalf("new settings failed: %v", err)
+	}
+
+	if !settings.filters.hiddenMethod.enabled {
+		t.Fatalf("spring hidden method settings = %+v", settings.filters.hiddenMethod)
 	}
 }
 

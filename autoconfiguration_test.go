@@ -697,6 +697,49 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenHiddenHTTPMethodFilterEnabled_shouldRouteOverriddenMethod(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+    filters:
+      hidden-method:
+        enabled: true
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.hidden-method", mvc.NewRestController("items",
+			mvc.POST("/items/1", mvc.Return(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+				return http.MethodPost, nil
+			})),
+			mvc.DELETE("/items/1", mvc.Return(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+				return http.MethodDelete, nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, starterServerURL(t, app)+"/items/1", strings.NewReader("_method=DELETE"))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return request, nil
+	}, http.StatusOK)
+	if snapshot.body != http.MethodDelete {
+		t.Fatalf("body = %q, want DELETE route", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenRegisteredTwice_shouldBackOffExistingConfigurations(t *testing.T) {
 	app, err := boot.Run(
 		t.Context(),
