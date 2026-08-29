@@ -34,6 +34,11 @@ type starterForwardedPayload struct {
 	Remote string `json:"remote"`
 }
 
+type starterGroupedCreateRequest struct {
+	Name string `json:"name" arkarta:"required" arkarta-groups:"create"`
+	Code string `json:"code" arkarta:"required"`
+}
+
 type starterAdviceError struct {
 	id string
 }
@@ -408,6 +413,56 @@ goark:
 	emptySnapshot := requestUntilStatusSnapshot(t, serverURL+"/api/jobs/empty", http.StatusAccepted)
 	if emptySnapshot.body != "" {
 		t.Fatalf("response status empty body = %q, want empty", emptySnapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenMVCValidationGroupsExist_shouldUseExplicitGroups(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.validation-groups", mvc.NewRestController("users",
+			mvc.POST("/users", mvc.BindJSONGroups(http.StatusCreated, func(_ *arkweb.Context, input starterGroupedCreateRequest) (map[string]string, error) {
+				return map[string]string{"name": input.Name}, nil
+			}, "create")),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	missingName := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, serverURL+"/users", strings.NewReader(`{}`))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		return request, nil
+	}, http.StatusUnprocessableEntity)
+	if missingName.header.Get("Content-Type") != "application/problem+json" {
+		t.Fatalf("Content-Type = %q, want problem json", missingName.header.Get("Content-Type"))
+	}
+
+	created := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, serverURL+"/users", strings.NewReader(`{"name":"goark"}`))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		return request, nil
+	}, http.StatusCreated)
+	if created.body != `{"name":"goark"}` {
+		t.Fatalf("body = %q, want created payload", created.body)
 	}
 }
 

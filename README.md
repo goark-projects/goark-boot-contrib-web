@@ -25,6 +25,7 @@ Official Goark Boot starter module for web applications.
 - MVC `ResponseBody` route wrapper for controller methods that explicitly write normal return values as response bodies.
 - MVC `Model` and `ModelAndView` return values for Spring-style server-side template controllers.
 - MVC `ResponseStatus` method-level default status handling for ordinary return values and no-body handlers.
+- MVC explicit validation groups for request body, multipart body, and model attribute binding.
 - MVC `ControllerAdvice` and `RestControllerAdvice` exception handling with the same default return value semantics.
 - Default UTF-8 character encoding filter with Spring Boot compatible servlet encoding properties.
 - Optional hidden HTTP method filter for HTML form method override.
@@ -64,6 +65,7 @@ Routes built with `mvc.Return` follow the containing controller: `mvc.NewControl
 Routes built with `mvc.ResponseBody` always write ordinary values through message converters, even when the containing controller is a normal `mvc.NewController`.
 `mvc.Model` infers the logical view name from the request path, while `mvc.ModelAndView` carries an explicit view name, model attributes, and optional view status.
 Routes can use `mvc.ResponseStatus` to set the method-level default HTTP status while preserving explicit `ResponseEntity`, redirect, download, and stream result status values.
+Routes can use explicit validation groups for request body, multipart body, and model attribute binding.
 Global exception handlers can be packaged as `mvc.NewControllerAdvice` or `mvc.NewRestControllerAdvice`; REST advice writes ordinary exception return values as response bodies by default.
 Advice handlers may also return `ResponseEntity[T]` when status, headers, and body must be controlled together.
 Routes can call `goark.dev/goark/web.CheckNotModified` before building an expensive body to honor `If-None-Match` and `If-Modified-Since` requests.
@@ -173,6 +175,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 支持 MVC `ResponseBody` 路由包装器，用于普通控制器方法显式将返回值写入响应体。
 - 支持 MVC `Model` 和 `ModelAndView` 返回值，用于对齐 Spring 风格服务端模板控制器。
 - 支持 MVC `ResponseStatus` 方法级默认状态码，可作用于普通返回值和无响应体处理器。
+- 支持 MVC 请求体、multipart 请求体和模型属性绑定的显式校验分组。
 - 支持 MVC `ControllerAdvice` 和 `RestControllerAdvice` 异常处理，并复用相同默认返回值语义。
 - 默认启用 UTF-8 字符集过滤器，并支持 Spring Boot 兼容的 Servlet 编码属性。
 - 支持可选隐藏 HTTP 方法过滤器，用于 HTML 表单方法覆盖。
@@ -191,6 +194,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 通过 `mvc.ResponseBody` 构造的路由始终把普通返回值通过消息转换器写入响应体，即使所在控制器是普通 `mvc.NewController`。
 `mvc.Model` 会根据请求路径推导逻辑视图名，`mvc.ModelAndView` 则携带显式视图名、模型属性和可选视图状态码。
 路由可以通过 `mvc.ResponseStatus` 设置方法级默认 HTTP 状态码，同时保留 `ResponseEntity`、重定向、下载和流式结果自身显式声明的状态码。
+路由可以对请求体、multipart 请求体和模型属性绑定使用显式校验分组。
 全局异常处理器可以组织为 `mvc.NewControllerAdvice` 或 `mvc.NewRestControllerAdvice`；REST advice 默认把普通异常返回值写为响应体。
 Advice 处理器也可以返回 `ResponseEntity[T]`，用于同时控制状态码、响应头和响应体。
 路由可以在构造高成本响应体前调用 `goark.dev/goark/web.CheckNotModified`，以处理 `If-None-Match` 和 `If-Modified-Since` 请求。
