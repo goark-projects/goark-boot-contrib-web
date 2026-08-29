@@ -19,6 +19,8 @@ type starterParameterMapPayload struct {
 	ParamValues  map[string][]string `json:"paramValues"`
 	Headers      map[string]string   `json:"headers"`
 	HeaderValues map[string][]string `json:"headerValues"`
+	Cookies      map[string]string   `json:"cookies"`
+	CookieValues map[string][]string `json:"cookieValues"`
 }
 
 func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testing.T) {
@@ -49,12 +51,22 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 				if err != nil {
 					return starterParameterMapPayload{}, err
 				}
+				cookies, err := mvc.CookieValueMap(ctx)
+				if err != nil {
+					return starterParameterMapPayload{}, err
+				}
+				cookieValues, err := mvc.CookieValueValuesMap(ctx)
+				if err != nil {
+					return starterParameterMapPayload{}, err
+				}
 				return starterParameterMapPayload{
 					Path:         path,
 					Params:       params,
 					ParamValues:  paramValues,
 					Headers:      headers,
 					HeaderValues: headerValues,
+					Cookies:      cookies,
+					CookieValues: cookieValues,
 				}, nil
 			})),
 		))),
@@ -72,6 +84,9 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 		request.Header.Add("X-Role", "admin")
 		request.Header.Add("X-Role", "ops")
 		request.Header.Set("X-Request-ID", "req-1")
+		request.AddCookie(&http.Cookie{Name: "theme", Value: "dark"})
+		request.AddCookie(&http.Cookie{Name: "role", Value: "admin"})
+		request.AddCookie(&http.Cookie{Name: "role", Value: "ops"})
 		return request, nil
 	}, http.StatusOK)
 
@@ -93,5 +108,12 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 	}
 	if !reflect.DeepEqual(got.HeaderValues["X-Role"], []string{"admin", "ops"}) {
 		t.Fatalf("header values = %#v", got.HeaderValues)
+	}
+	if !reflect.DeepEqual(got.Cookies, map[string]string{"theme": "dark", "role": "admin"}) {
+		t.Fatalf("cookies = %#v", got.Cookies)
+	}
+	if !reflect.DeepEqual(got.CookieValues["role"], []string{"admin", "ops"}) ||
+		!reflect.DeepEqual(got.CookieValues["theme"], []string{"dark"}) {
+		t.Fatalf("cookie values = %#v", got.CookieValues)
 	}
 }
