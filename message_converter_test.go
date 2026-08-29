@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -118,6 +119,49 @@ goark:
 	}
 	if snapshot.body != "starter:abc" {
 		t.Fatalf("body = %q, want starter converter output", snapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenFormBodyExists_shouldUseDefaultMessageConverters(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root+"/app.yml", `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")))),
+		boot.WithConfiguration(mvc.NewConfiguration("test.web.form-message.mvc", mvc.NewController("forms",
+			mvc.POST("/forms", mvc.BindBody(http.StatusAccepted, func(_ *arkweb.Context, input url.Values) (url.Values, error) {
+				input.Set("seen", "true")
+				return input, nil
+			}), mvc.WithConsumes(message.MediaTypeFormURLEncoded), mvc.WithProduces(message.MediaTypeFormURLEncoded)),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, starterServerURL(t, app)+"/forms", strings.NewReader("name=goark&tag=web&tag=mvc"))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", message.MediaTypeFormURLEncoded)
+		request.Header.Set("Accept", message.MediaTypeFormURLEncoded)
+		return request, nil
+	}, http.StatusAccepted)
+
+	if got := snapshot.header.Get("Content-Type"); got != message.MediaTypeFormURLEncoded {
+		t.Fatalf("Content-Type = %q, want form", got)
+	}
+	if snapshot.body != "name=goark&seen=true&tag=web&tag=mvc" {
+		t.Fatalf("body = %q, want encoded form", snapshot.body)
 	}
 }
 
