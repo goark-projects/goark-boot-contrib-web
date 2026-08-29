@@ -56,6 +56,9 @@ func (c configuration) RegisterWithContext(_ context.Context, config appcontext.
 	if err := registerHTTPClient(config.Registry(), resolved.httpClient); err != nil {
 		return err
 	}
+	if err := registerMessageIO(config.Registry()); err != nil {
+		return err
+	}
 	if err := registerWebFilters(config.Registry(), resolved.filters); err != nil {
 		return err
 	}

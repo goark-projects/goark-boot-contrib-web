@@ -23,6 +23,12 @@ const (
 	BeanNameViewResolver = "goark.boot.web.viewResolver"
 	// BeanNameViewInterceptor 是默认 MVC 视图解析器拦截器 Bean 名称。
 	BeanNameViewInterceptor = "goark.boot.web.viewInterceptor"
+	// BeanNameMessageReader 是默认请求体消息读取器 Bean 名称。
+	BeanNameMessageReader = "goark.boot.web.messageReader"
+	// BeanNameMessageWriter 是默认响应体消息写出器 Bean 名称。
+	BeanNameMessageWriter = "goark.boot.web.messageWriter"
+	// BeanNameMessageIOConfigurer 是默认消息读写器 Web 配置器 Bean 名称。
+	BeanNameMessageIOConfigurer = "goark.boot.web.messageIOConfigurer"
 	// BeanNameHTTPClientBuilder 是默认 Web HTTP 客户端构建器 Bean 名称。
 	BeanNameHTTPClientBuilder = "goark.boot.web.clientBuilder"
 	// BeanNameHTTPClient 是默认 Web HTTP 客户端 Bean 名称。
