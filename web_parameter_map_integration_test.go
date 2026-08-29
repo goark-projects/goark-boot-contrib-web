@@ -14,6 +14,7 @@ import (
 )
 
 type starterParameterMapPayload struct {
+	Path         map[string]string   `json:"path"`
 	Params       map[string]string   `json:"params"`
 	ParamValues  map[string][]string `json:"paramValues"`
 	Headers      map[string]string   `json:"headers"`
@@ -27,7 +28,11 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
 		)),
 		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.parameter-map", mvc.NewRestController("search",
-			mvc.GET("/search", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterParameterMapPayload, error) {
+			mvc.GET("/tenants/{tenantId}/search/{userId}", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterParameterMapPayload, error) {
+				path, err := mvc.PathVariableMap(ctx)
+				if err != nil {
+					return starterParameterMapPayload{}, err
+				}
 				params, err := mvc.RequestParamMap(ctx)
 				if err != nil {
 					return starterParameterMapPayload{}, err
@@ -45,6 +50,7 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 					return starterParameterMapPayload{}, err
 				}
 				return starterParameterMapPayload{
+					Path:         path,
 					Params:       params,
 					ParamValues:  paramValues,
 					Headers:      headers,
@@ -59,7 +65,7 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 	defer closeApp(t, app)
 
 	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
-		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, starterServerURL(t, app)+"/search?tag=query&tag=web&q=goark", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, starterServerURL(t, app)+"/tenants/core;scope=internal/search/42;role=admin?tag=query&tag=web&q=goark", nil)
 		if err != nil {
 			return nil, err
 		}
@@ -72,6 +78,9 @@ func TestAutoConfigure_whenParameterMapsExist_shouldServeThroughArkhos(t *testin
 	var got starterParameterMapPayload
 	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &got); err != nil {
 		t.Fatalf("response JSON invalid: %v", err)
+	}
+	if !reflect.DeepEqual(got.Path, map[string]string{"tenantId": "core", "userId": "42"}) {
+		t.Fatalf("path = %#v", got.Path)
 	}
 	if got.Params["tag"] != "query" || got.Params["q"] != "goark" {
 		t.Fatalf("params = %#v", got.Params)
