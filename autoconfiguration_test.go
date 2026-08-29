@@ -835,6 +835,9 @@ goark:
 		boot.WithConfigDataOptions(configdata.WithLocations(root)),
 		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
 		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.entity", mvc.NewController("jobs",
+			mvc.POST("/jobs", mvc.Entity(func(ctx *arkweb.Context) (goweb.ResponseEntity[map[string]string], error) {
+				return goweb.CreatedFromCurrentRequest(ctx, "/{id}", map[string]string{"id": "42"}, map[string]string{"state": "created"})
+			})),
 			mvc.GET("/jobs/1", mvc.Entity(func(_ *arkweb.Context) (goweb.ResponseEntity[map[string]string], error) {
 				return goweb.Status(http.StatusAccepted, map[string]string{"state": "queued"}).
 					WithHeader("X-Starter-Entity", "true"), nil
@@ -860,6 +863,13 @@ goark:
 	}
 	if snapshot.body != `{"state":"queued"}` {
 		t.Fatalf("body = %q, want entity json", snapshot.body)
+	}
+	created := requestUntilStatusSnapshotWithMethod(t, http.MethodPost, server.URL()+"/jobs", http.StatusCreated)
+	if got := created.header.Get("Location"); got != server.URL()+"/jobs/42" {
+		t.Fatalf("created Location = %q, want current request URI", got)
+	}
+	if created.body != `{"state":"created"}` {
+		t.Fatalf("created body = %q, want entity json", created.body)
 	}
 }
 
@@ -1406,11 +1416,19 @@ type responseSnapshot struct {
 }
 
 func requestUntilStatusSnapshot(t *testing.T, target string, statusCode int) responseSnapshot {
+	return requestUntilStatusSnapshotWithMethod(t, http.MethodGet, target, statusCode)
+}
+
+func requestUntilStatusSnapshotWithMethod(t *testing.T, method string, target string, statusCode int) responseSnapshot {
 	t.Helper()
 	client := http.Client{Timeout: time.Second}
 	deadline := time.Now().Add(3 * time.Second)
 	for {
-		response, err := client.Get(target)
+		request, requestErr := http.NewRequestWithContext(t.Context(), method, target, nil)
+		if requestErr != nil {
+			t.Fatalf("%s %s request invalid: %v", method, target, requestErr)
+		}
+		response, err := client.Do(request)
 		if err == nil {
 			body, readErr := io.ReadAll(response.Body)
 			closeErr := response.Body.Close()
@@ -1426,7 +1444,7 @@ func requestUntilStatusSnapshot(t *testing.T, target string, statusCode int) res
 			t.Fatalf("status = %d, want %d, body = %q", response.StatusCode, statusCode, string(body))
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("GET %s did not succeed before deadline: %v", target, err)
+			t.Fatalf("%s %s did not succeed before deadline: %v", method, target, err)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
