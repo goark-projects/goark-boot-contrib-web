@@ -51,6 +51,11 @@ type starterIndexedSearchOwner struct {
 	Aliases []string `form:"aliases"`
 }
 
+type starterMappedSearchCriteria struct {
+	Filters map[string]int      `form:"filters"`
+	Tags    map[string][]string `form:"tags"`
+}
+
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -70,6 +75,12 @@ type starterIndexedSearchPayload struct {
 	SecondLevel int    `json:"secondLevel"`
 	SecondAlias string `json:"secondAlias"`
 	Page        int    `json:"page"`
+}
+
+type starterMappedSearchPayload struct {
+	Level  int      `json:"level"`
+	Roles  []string `json:"roles"`
+	Groups []string `json:"groups"`
 }
 
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
@@ -131,6 +142,17 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 						Page:        criteria.Page,
 					}, nil
 				})),
+				mvc.GET("/search/mapped", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterMappedSearchPayload, error) {
+					criteria, err := mvc.ModelAttribute[starterMappedSearchCriteria](ctx)
+					if err != nil {
+						return starterMappedSearchPayload{}, err
+					}
+					return starterMappedSearchPayload{
+						Level:  criteria.Filters["level"],
+						Roles:  criteria.Tags["roles"],
+						Groups: criteria.Tags["groups"],
+					}, nil
+				})),
 			)),
 		),
 	)
@@ -181,6 +203,22 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 		indexedPayload.SecondAlias != "maintainer" ||
 		indexedPayload.Page != 102 {
 		t.Fatalf("indexed search payload = %#v, want indexed model attribute", indexedPayload)
+	}
+
+	mappedSnapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/search/mapped?"+
+		"filters[level]=admin&tags[roles]=admin,ops&tags[groups]=core&tags[groups]=web", http.StatusOK)
+	var mappedPayload starterMappedSearchPayload
+	if err := arkjson.Unmarshal(nil, []byte(mappedSnapshot.body), &mappedPayload); err != nil {
+		t.Fatalf("mapped search json invalid: %v", err)
+	}
+	if mappedPayload.Level != 105 ||
+		len(mappedPayload.Roles) != 2 ||
+		mappedPayload.Roles[0] != "admin" ||
+		mappedPayload.Roles[1] != "ops" ||
+		len(mappedPayload.Groups) != 2 ||
+		mappedPayload.Groups[0] != "core" ||
+		mappedPayload.Groups[1] != "web" {
+		t.Fatalf("mapped search payload = %#v, want mapped model attribute", mappedPayload)
 	}
 }
 
