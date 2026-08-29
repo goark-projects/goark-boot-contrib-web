@@ -48,6 +48,9 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 	if !settings.filters.flashMap.enabled || settings.filters.flashMap.timeout != DefaultFlashMapTimeout {
 		t.Fatalf("flash map defaults = %+v", settings.filters.flashMap)
 	}
+	if !settings.filters.sessionAttributes.enabled {
+		t.Fatalf("session attributes defaults = %+v", settings.filters.sessionAttributes)
+	}
 	if !settings.filters.characterEncoding.enabled ||
 		settings.filters.characterEncoding.encoding != DefaultCharacterEncoding ||
 		!settings.filters.characterEncoding.forceRequest ||
@@ -114,6 +117,7 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyFormContentMaxBodyBytes:                "2048",
 		PropertyFlashMapFilterEnabled:                  "true",
 		PropertyFlashMapTimeout:                        "45s",
+		PropertySessionAttributesFilterEnabled:         "false",
 		PropertyErrorEndpointEnabled:                   "true",
 		PropertyErrorPath:                              "/failure",
 		PropertyProblemDetailsEnabled:                  "true",
@@ -188,6 +192,9 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.flashMap.enabled || settings.filters.flashMap.timeout != 45*time.Second {
 		t.Fatalf("flash map settings = %+v", settings.filters.flashMap)
 	}
+	if settings.filters.sessionAttributes.enabled {
+		t.Fatalf("session attributes settings = %+v", settings.filters.sessionAttributes)
+	}
 	if !settings.errorHandling.enabled ||
 		!settings.errorHandling.problemDetailsEnabled ||
 		settings.errorHandling.path != "/failure" {
@@ -205,13 +212,14 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 
 func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		PropertyApplicationName:          "from-env",
-		PropertyServletContextPath:       "/env",
-		PropertyServletMapping:           "/env/*",
-		PropertyStaticResourcesLocations: "resource/env",
-		PropertyStaticResourcesPattern:   "/env-static/*",
-		PropertyFormContentFilterEnabled: "false",
-		PropertyCharacterEncoding:        "GBK",
+		PropertyApplicationName:                "from-env",
+		PropertyServletContextPath:             "/env",
+		PropertyServletMapping:                 "/env/*",
+		PropertyStaticResourcesLocations:       "resource/env",
+		PropertyStaticResourcesPattern:         "/env-static/*",
+		PropertyFormContentFilterEnabled:       "false",
+		PropertySessionAttributesFilterEnabled: "false",
+		PropertyCharacterEncoding:              "GBK",
 	})
 
 	settings, err := newSettings(environment, []Option{
@@ -243,6 +251,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithFormContentFilterOptions(gowebfilter.WithFormContentMethods(http.MethodDelete)),
 		WithFlashMapFilterEnabled(true),
 		WithFlashMapTimeout(90 * time.Second),
+		WithSessionAttributesFilterEnabled(true),
 		WithErrorEndpointEnabled(true),
 		WithErrorPath("/option-error"),
 		WithProblemDetailsEnabled(true),
@@ -295,6 +304,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		len(settings.filters.formContent.options) != 1 ||
 		!settings.filters.flashMap.enabled ||
 		settings.filters.flashMap.timeout != 90*time.Second ||
+		!settings.filters.sessionAttributes.enabled ||
 		!settings.filters.shallowETag.enabled ||
 		settings.filters.shallowETag.maxBodyBytes != 512 {
 		t.Fatalf("filter options did not override environment: %+v", settings.filters)

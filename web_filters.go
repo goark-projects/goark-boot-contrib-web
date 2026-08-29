@@ -13,6 +13,7 @@ import (
 	gowebcors "goark.dev/goark/web/cors"
 	gowebfilter "goark.dev/goark/web/filter"
 	mvcflash "goark.dev/goark/web/mvc/flash"
+	mvcsessionattrs "goark.dev/goark/web/mvc/sessionattrs"
 )
 
 const (
@@ -53,6 +54,7 @@ const (
 	orderHiddenHTTPMethodFilter                = -100
 	orderFormContentFilter                     = -90
 	orderFlashMapFilter                        = -80
+	orderSessionAttributesFilter               = -70
 	orderShallowETagFilter                     = 100
 )
 
@@ -63,6 +65,7 @@ type filterSettings struct {
 	formContent       formContentSettings
 	flashMap          flashMapSettings
 	hiddenMethod      hiddenMethodSettings
+	sessionAttributes sessionAttributesSettings
 	shallowETag       shallowETagSettings
 }
 
@@ -105,6 +108,10 @@ type flashMapSettings struct {
 	timeout time.Duration
 }
 
+type sessionAttributesSettings struct {
+	enabled bool
+}
+
 func defaultFilterSettings() filterSettings {
 	return filterSettings{
 		characterEncoding: characterEncodingSettings{
@@ -118,7 +125,8 @@ func defaultFilterSettings() filterSettings {
 		hiddenMethod: hiddenMethodSettings{
 			enabled: DefaultHiddenHTTPMethodFilterEnabled,
 		},
-		shallowETag: shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
+		sessionAttributes: sessionAttributesSettings{enabled: DefaultSessionAttributesFilterEnabled},
+		shallowETag:       shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
 	}
 }
 
@@ -288,6 +296,14 @@ func WithFlashMapTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithSessionAttributesFilterEnabled 设置是否启用 MVC SessionAttributes 过滤器。
+func WithSessionAttributesFilterEnabled(enabled bool) Option {
+	return func(settings *settings) error {
+		settings.filters.sessionAttributes.enabled = enabled
+		return nil
+	}
+}
+
 func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error {
 	if value, ok := firstProperty(environment, PropertyCORSEnabled, propertySpringWebCORSEnabled, propertySpringMVCCORSEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyCORSEnabled, value)
@@ -442,10 +458,18 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 			}
 		}
 	}
+	if value, ok := environment.GetProperty(PropertySessionAttributesFilterEnabled); ok {
+		enabled, err := parseBoolProperty(PropertySessionAttributesFilterEnabled, value)
+		if err != nil {
+			return err
+		}
+		s.filters.sessionAttributes.enabled = enabled
+	}
 	return nil
 }
 
 func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettings) error {
+	mvcSessionManager := mvcFilterSessionManager(settings)
 	if settings.characterEncoding.enabled {
 		options := append([]gowebfilter.CharacterEncodingOption{
 			gowebfilter.WithCharacterEncoding(settings.characterEncoding.encoding),
@@ -491,13 +515,22 @@ func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettin
 	}
 	if settings.flashMap.enabled {
 		filter, err := mvcflash.NewSessionFilter(
-			session.NewMemoryManager(),
+			mvcSessionManager,
 			mvcflash.WithTimeout(settings.flashMap.timeout),
 		)
 		if err != nil {
 			return err
 		}
 		if err := goweb.RegisterFilter(registry, BeanNameFlashMapFilter, filter, goarkcontainer.WithOrder(orderFlashMapFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.sessionAttributes.enabled {
+		filter, err := mvcsessionattrs.NewSessionFilter(mvcSessionManager)
+		if err != nil {
+			return err
+		}
+		if err := goweb.RegisterFilter(registry, BeanNameSessionAttributesFilter, filter, goarkcontainer.WithOrder(orderSessionAttributesFilter)); err != nil {
 			return err
 		}
 	}
@@ -509,6 +542,13 @@ func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettin
 		}
 	}
 	return nil
+}
+
+func mvcFilterSessionManager(settings filterSettings) session.Manager {
+	if !settings.flashMap.enabled && !settings.sessionAttributes.enabled {
+		return nil
+	}
+	return session.NewMemoryManager()
 }
 
 func enableCORSByConfiguration(settings *corsFilterSettings) {
