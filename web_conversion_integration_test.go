@@ -163,6 +163,12 @@ type starterBinderPayload struct {
 	Metadata     map[string]string   `json:"metadata"`
 }
 
+type starterSuppressedPayload struct {
+	Name             string   `json:"name"`
+	Admin            bool     `json:"admin"`
+	SuppressedFields []string `json:"suppressedFields"`
+}
+
 type starterPreferencePayload struct {
 	Theme      string `json:"theme"`
 	NotifySet  bool   `json:"notifySet"`
@@ -562,6 +568,50 @@ func TestAutoConfigure_whenEmptyArrayIndexFieldsExist_shouldBindModelAttributesT
 		payload.Aliases[0] != "core" ||
 		payload.Aliases[1] != "web" {
 		t.Fatalf("payload = %#v, want empty array index fields", payload)
+	}
+}
+
+func TestAutoConfigure_whenSuppressedFieldsExist_shouldExposeBindingResultThroughArkhos(t *testing.T) {
+	controller := mvc.NewRestController("starter-suppressed-fields",
+		mvc.GET("/field-binder/suppressed", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterSuppressedPayload, error) {
+			input, result, err := mvc.ModelAttributeResult[starterBinderInput](ctx)
+			if err != nil {
+				return starterSuppressedPayload{}, err
+			}
+			return starterSuppressedPayload{
+				Name:             input.Name,
+				Admin:            input.Admin,
+				SuppressedFields: result.SuppressedFields(),
+			}, nil
+		})),
+	).WithInitBinders(mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
+		return binder.SetAllowedFields("name")
+	}))
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.suppressed-fields", controller),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/field-binder/suppressed?name=ada&admin=true&profile.email=ada@example.test", http.StatusOK)
+	var payload starterSuppressedPayload
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("suppressed fields json invalid: %v", err)
+	}
+	if payload.Name != "ada" ||
+		payload.Admin ||
+		len(payload.SuppressedFields) != 2 ||
+		payload.SuppressedFields[0] != "admin" ||
+		payload.SuppressedFields[1] != "profile.email" {
+		t.Fatalf("payload = %#v, want suppressed binding fields", payload)
 	}
 }
 
