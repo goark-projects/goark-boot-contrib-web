@@ -226,6 +226,59 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenControllerAndRestControllerReturnValuesExist_shouldUseDefaultStrategies(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "home.html"), "<h1>home</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.controller-kind",
+			mvc.NewController("pages",
+				mvc.GET("/home", mvc.Return(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+					return "home", nil
+				})),
+			),
+			mvc.NewRestController("api",
+				mvc.GET("/api/status", mvc.Return(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+					return "UP", nil
+				})),
+			),
+		)),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	viewSnapshot := requestUntilStatusSnapshot(t, serverURL+"/home", http.StatusOK)
+	if viewSnapshot.header.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("view Content-Type = %q, want html", viewSnapshot.header.Get("Content-Type"))
+	}
+	if viewSnapshot.body != "<h1>home</h1>" {
+		t.Fatalf("view body = %q, want rendered view", viewSnapshot.body)
+	}
+	restSnapshot := requestUntilStatusSnapshot(t, serverURL+"/api/status", http.StatusOK)
+	if restSnapshot.header.Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Fatalf("rest Content-Type = %q, want text/plain", restSnapshot.header.Get("Content-Type"))
+	}
+	if restSnapshot.body != "UP" {
+		t.Fatalf("rest body = %q, want raw response body", restSnapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenResponseEntityRouteExists_shouldPreserveStatusHeadersAndBody(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
