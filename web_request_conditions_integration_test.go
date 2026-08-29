@@ -125,6 +125,56 @@ goark:
 	assertConditionDispatchPayload(t, serverURL+"/condition-dispatch", "default")
 }
 
+func TestAutoConfigure_whenProducesConditionsOverlap_shouldPreserveSelectedProducesThroughArkhos(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root+"/app.yml", `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.produces-condition-dispatch", mvc.NewRestController("producesDispatch",
+			mvc.GET("/produces-dispatch", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterRequestConditionPayload, error) {
+				produces, _ := ctx.Request().Attribute(mvc.AttributeProducesMediaType)
+				return starterRequestConditionPayload{Produces: produces.(string)}, nil
+			}), mvc.WithProduces("application/json")),
+			mvc.GET("/produces-dispatch", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterRequestConditionPayload, error) {
+				produces, _ := ctx.Request().Attribute(mvc.AttributeProducesMediaType)
+				return starterRequestConditionPayload{Produces: produces.(string)}, nil
+			}), mvc.WithProduces("text/plain")),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	requestURL := starterServerURL(t, app) + "/produces-dispatch"
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, requestURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", "application/json, text/plain")
+		return request, nil
+	}, http.StatusOK)
+	if got := snapshot.header.Get("Content-Type"); got != "application/json" {
+		t.Fatalf("Content-Type = %q, want application/json", got)
+	}
+	var payload starterRequestConditionPayload
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("response json invalid: %v", err)
+	}
+	if payload.Produces != "application/json" {
+		t.Fatalf("payload = %#v, want selected application/json produces", payload)
+	}
+}
+
 func assertConditionDispatchPayload(t *testing.T, target string, wantMode string) {
 	t.Helper()
 	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
