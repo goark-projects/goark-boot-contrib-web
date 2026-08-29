@@ -234,6 +234,52 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenMVCModelViewExists_shouldRenderTemplateModel(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, filepath.Join(templateDir, "reports"))
+	mkdir(t, filepath.Join(templateDir, "pages"))
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "reports", "summary.html"), "<h1>{{.Title}}</h1>")
+	writeFile(t, filepath.Join(templateDir, "pages", "detail.html"), "<h1>{{.Title}}</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.model-view", mvc.NewController("pages",
+			mvc.GET("/reports/summary.html", mvc.Return(0, func(_ *arkweb.Context) (mvc.Model, error) {
+				return mvc.NewModel().AddAttribute("Title", "Summary"), nil
+			})),
+			mvc.GET("/pages/42", mvc.Return(0, func(_ *arkweb.Context) (mvc.ModelAndView, error) {
+				model := mvc.NewModel().AddAttribute("Title", "Detail")
+				return mvc.NewModelAndView("pages/detail", model, mvc.WithViewStatus(http.StatusAccepted)), nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	inferred := requestUntilStatusSnapshot(t, serverURL+"/reports/summary.html", http.StatusOK)
+	if inferred.body != "<h1>Summary</h1>" {
+		t.Fatalf("inferred model view body = %q, want summary", inferred.body)
+	}
+	explicit := requestUntilStatusSnapshot(t, serverURL+"/pages/42", http.StatusAccepted)
+	if explicit.body != "<h1>Detail</h1>" {
+		t.Fatalf("explicit model and view body = %q, want detail", explicit.body)
+	}
+}
+
 func TestAutoConfigure_whenControllerAndRestControllerReturnValuesExist_shouldUseDefaultStrategies(t *testing.T) {
 	root := t.TempDir()
 	resource := filepath.Join(root, "resource")
