@@ -45,7 +45,7 @@ goark:
 	defer closeApp(t, app)
 
 	serverURL := starterServerURL(t, app)
-	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodOptions, http.MethodTrace} {
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodOptions} {
 		snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
 			return http.NewRequestWithContext(t.Context(), method, serverURL+"/request-mapping", nil)
 		}, http.StatusOK)
@@ -57,4 +57,8 @@ goark:
 			t.Fatalf("%s payload = %#v, want method and path", method, payload)
 		}
 	}
+
+	requestUntilStatusWith(t, func() (*http.Request, error) {
+		return http.NewRequestWithContext(t.Context(), http.MethodTrace, serverURL+"/request-mapping", nil)
+	}, http.StatusMethodNotAllowed)
 }
