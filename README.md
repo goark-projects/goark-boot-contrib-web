@@ -19,6 +19,7 @@ Official Goark Boot starter module for web applications.
 - Arkhos as the default embedded web container through `goark.dev/gbc-arkhos`.
 - Auto-application of `goark.dev/goark/web.Configurer` beans, including MVC routes, response advice, and error mappers supplied by application code.
 - Goark Web result conventions such as `ResponseEntity[T]`, file download, streaming responses, and Server-Sent Events.
+- Spring-style request entity binding through `RequestEntity[T]`, including body, headers, method, URL, and content length metadata.
 - Spring-style response Cookie construction through `ResponseCookie` and `ResponseEntity`.
 - Conditional request support for ETag and `Last-Modified` based 304 responses.
 - Path-scoped Web interceptors and Servlet filters for Spring MVC style include/exclude request chains.
@@ -65,6 +66,7 @@ func main() {
 Business packages contribute MVC controllers, response advice, error mappers, or other `goark.dev/goark/web.Configurer` beans.
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
 MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, `SSE`, or `Redirect`; the response status, headers, cookies, cache headers, conditional validators, JSON body, negotiated `produces` media type, redirect location, and streaming headers are preserved by the generated route and starter deployment.
+Handlers can bind `goark.dev/goark/web.RequestEntity[T]` when they need the converted request body together with headers, method, full URL, path, and content length metadata.
 Routes built with `mvc.Return` follow the containing controller: `mvc.NewController` treats a string as a logical view name, while `mvc.NewRestController` writes ordinary values through message converters.
 Routes built with `mvc.ResponseBody` always write ordinary values through message converters, even when the containing controller is a normal `mvc.NewController`.
 `mvc.Model` infers the logical view name from the request path, while `mvc.ModelAndView` carries an explicit view name, model attributes, and optional view status.
@@ -176,6 +178,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 默认通过 `goark.dev/gbc-arkhos` 接入 Arkhos 嵌入式 Web 容器。
 - 自动应用业务贡献的 `goark.dev/goark/web.Configurer` Bean，包括 MVC 路由、响应增强器和错误映射器。
 - 支持 Goark Web 的 `ResponseEntity[T]`、文件下载、流式响应和 Server-Sent Events 结果约定。
+- 支持通过 `RequestEntity[T]` 绑定 Spring 风格请求实体，包含请求体、请求头、方法、URL 和 Content-Length 元数据。
 - 支持基于 ETag 和 `Last-Modified` 的条件请求，命中时返回 304。
 - 支持带路径作用域的 Web 拦截器和 Servlet 过滤器，对齐 Spring MVC 风格 include/exclude 请求链。
 - 支持 MVC `Controller` 和 `RestController` 默认返回值语义：普通控制器默认视图，REST 控制器默认响应体。
@@ -199,6 +202,7 @@ Goark 官方维护的 Web 应用启动器模块。
 业务包只需要贡献 MVC 控制器、响应增强器、错误映射器或其他 `goark.dev/goark/web.Configurer` Bean。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
 MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream`、`SSE` 或 `Redirect`；生成路由和本启动器部署链路会保留响应状态码、响应头、Cookie、缓存头、条件请求校验器、JSON 响应体、协商后的 `produces` 媒体类型、重定向 Location 和流式响应头。
+处理器可以绑定 `goark.dev/goark/web.RequestEntity[T]`，在转换后的请求体之外同时读取请求头、方法、完整 URL、路径和 Content-Length 元数据。
 通过 `mvc.Return` 构造的路由会遵循所在控制器：`mvc.NewController` 将字符串作为逻辑视图名，`mvc.NewRestController` 将普通返回值通过消息转换器写入响应体。
 通过 `mvc.ResponseBody` 构造的路由始终把普通返回值通过消息转换器写入响应体，即使所在控制器是普通 `mvc.NewController`。
 `mvc.Model` 会根据请求路径推导逻辑视图名，`mvc.ModelAndView` 则携带显式视图名、模型属性和可选视图状态码。
