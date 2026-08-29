@@ -75,6 +75,10 @@ goark:
 						goweb.WithDownloadContentLength(16),
 					), nil
 				})),
+				mvc.POST("/session-cookie", mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
+					return goweb.NoBody(http.StatusNoContent).
+						WithResponseCookie(goweb.NewResponseCookie("sid", "abc").WithHTTPOnly(true)), nil
+				})),
 				mvc.GET("/events", mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
 					return goweb.SSE(func(_ context.Context, writer *goweb.SSEWriter) error {
 						return writer.Send(goweb.SSEEvent{
@@ -137,6 +141,13 @@ goark:
 	}
 	if got := downloadSnapshot.header.Get("Content-Disposition"); got != `attachment; filename=today.csv` {
 		t.Fatalf("download Content-Disposition = %q", got)
+	}
+
+	cookieSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		return http.NewRequestWithContext(t.Context(), http.MethodPost, serverURL+"/session-cookie", nil)
+	}, http.StatusNoContent)
+	if got := cookieSnapshot.header.Get("Set-Cookie"); got != "sid=abc; HttpOnly" {
+		t.Fatalf("session cookie = %q", got)
 	}
 
 	eventSnapshot := requestUntilStatusSnapshot(t, serverURL+"/events", http.StatusOK)

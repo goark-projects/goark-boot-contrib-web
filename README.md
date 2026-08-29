@@ -19,6 +19,7 @@ Official Goark Boot starter module for web applications.
 - Arkhos as the default embedded web container through `goark.dev/gbc-arkhos`.
 - Auto-application of `goark.dev/goark/web.Configurer` beans, including MVC routes, response advice, and error mappers supplied by application code.
 - Goark Web result conventions such as `ResponseEntity[T]`, file download, streaming responses, and Server-Sent Events.
+- Spring-style response Cookie construction through `ResponseCookie` and `ResponseEntity`.
 - Conditional request support for ETag and `Last-Modified` based 304 responses.
 - Path-scoped Web interceptors and Servlet filters for Spring MVC style include/exclude request chains.
 - MVC `Controller` and `RestController` default return value semantics: views for normal controllers, response bodies for REST controllers.
