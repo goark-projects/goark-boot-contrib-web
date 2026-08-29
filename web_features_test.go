@@ -150,6 +150,12 @@ goark:
 			t.Fatalf("event body missing %q:\n%s", fragment, eventSnapshot.body)
 		}
 	}
+	if got := eventSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "" {
+		t.Fatalf("event scoped filter = %q, want empty", got)
+	}
+	if got := eventSnapshot.header.Get("X-Starter-Scoped-Interceptor"); got != "" {
+		t.Fatalf("event scoped interceptor = %q, want empty", got)
+	}
 
 	contractSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
 		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/contracts", nil)
@@ -161,6 +167,12 @@ goark:
 	}, http.StatusOK)
 	if got := contractSnapshot.header.Get("Content-Type"); got != contractMediaType {
 		t.Fatalf("contract Content-Type = %q, want %s", got, contractMediaType)
+	}
+	if got := contractSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "hit" {
+		t.Fatalf("contract scoped filter = %q, want hit", got)
+	}
+	if got := contractSnapshot.header.Get("X-Starter-Scoped-Interceptor"); got != "hit" {
+		t.Fatalf("contract scoped interceptor = %q, want hit", got)
 	}
 	if contractSnapshot.body != `{"state":"NEGOTIATED"}` {
 		t.Fatalf("contract body = %q, want negotiated JSON", contractSnapshot.body)
@@ -192,6 +204,26 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(_ context.Context, co
 		res.Header().Set("X-Starter-Filter", "hit")
 		return chain.Next(ctx, req, res)
 	})); err != nil {
+		return err
+	}
+	interceptorMapping, err := goweb.NewInterceptorMapping(goweb.WithInterceptorPathPatterns("/contracts"))
+	if err != nil {
+		return err
+	}
+	if err := goweb.RegisterMappedInterceptor(config.Registry(), "testScopedInterceptor", goweb.InterceptorFunc(func(ctx *arkweb.Context, next arkweb.Handler) (arkweb.Result, error) {
+		ctx.Response().Header().Set("X-Starter-Scoped-Interceptor", "hit")
+		return next.Handle(ctx)
+	}), interceptorMapping); err != nil {
+		return err
+	}
+	filterMapping, err := goweb.NewFilterMapping(goweb.WithFilterPathPatterns("/contracts"))
+	if err != nil {
+		return err
+	}
+	if err := goweb.RegisterMappedFilter(config.Registry(), "testScopedFilter", servlet.FilterFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
+		res.Header().Set("X-Starter-Scoped-Filter", "hit")
+		return chain.Next(ctx, req, res)
+	}), filterMapping); err != nil {
 		return err
 	}
 	return static.Register(config.Registry(), "testStaticResources", "/assets/*", fstest.MapFS{
