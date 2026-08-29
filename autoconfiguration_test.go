@@ -468,6 +468,48 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenModelViewRedirectHasAttributes_shouldExpandLocation(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.redirect-attributes", mvc.NewController("redirects",
+			mvc.GET("/accounts", mvc.Return(0, func(_ *arkweb.Context) (mvc.ModelAndView, error) {
+				model := mvc.NewModel().
+					AddAttribute("id", "a/b").
+					AddAttribute("page", 2).
+					AddAttribute("tab", "security")
+				return mvc.NewModelAndView("redirect:/users/{id}", model, mvc.WithViewStatus(http.StatusSeeOther)), nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	snapshot := requestUntilStatusWithClient(t, http.Client{
+		Timeout: time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}, func() (*http.Request, error) {
+		return http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/accounts", nil)
+	}, http.StatusSeeOther)
+	if got := snapshot.header.Get("Location"); got != "/users/a%2Fb?page=2&tab=security" {
+		t.Fatalf("Location = %q, want expanded redirect", got)
+	}
+}
+
 func TestAutoConfigure_whenControllerReturnsForwardViewName_shouldDispatchTarget(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
