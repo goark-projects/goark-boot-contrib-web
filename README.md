@@ -22,6 +22,7 @@ Official Goark Boot starter module for web applications.
 - Conditional request support for ETag and `Last-Modified` based 304 responses.
 - Path-scoped Web interceptors and Servlet filters for Spring MVC style include/exclude request chains.
 - MVC `Controller` and `RestController` default return value semantics: views for normal controllers, response bodies for REST controllers.
+- MVC `ControllerAdvice` and `RestControllerAdvice` exception handling with the same default return value semantics.
 - Default UTF-8 character encoding filter with Spring Boot compatible servlet encoding properties.
 - Optional hidden HTTP method filter for HTML form method override.
 - Default form content filter for PUT, PATCH, and DELETE URL-encoded request parameters.
@@ -57,6 +58,7 @@ Business packages contribute MVC controllers, response advice, error mappers, or
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
 MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, `SSE`, or `Redirect`; the response status, headers, cookies, cache headers, conditional validators, JSON body, negotiated `produces` media type, redirect location, and streaming headers are preserved by the generated route and starter deployment.
 Routes built with `mvc.Return` follow the containing controller: `mvc.NewController` treats a string as a logical view name, while `mvc.NewRestController` writes ordinary values through message converters.
+Global exception handlers can be packaged as `mvc.NewControllerAdvice` or `mvc.NewRestControllerAdvice`; REST advice writes ordinary exception return values as response bodies by default.
 Routes can call `goark.dev/goark/web.CheckNotModified` before building an expensive body to honor `If-None-Match` and `If-Modified-Since` requests.
 Handlers can return `goark.dev/goark/web.NewStatusError` to produce Spring-style status errors through the default Problem Details mapper.
 Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, cookies, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
@@ -161,6 +163,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 支持基于 ETag 和 `Last-Modified` 的条件请求，命中时返回 304。
 - 支持带路径作用域的 Web 拦截器和 Servlet 过滤器，对齐 Spring MVC 风格 include/exclude 请求链。
 - 支持 MVC `Controller` 和 `RestController` 默认返回值语义：普通控制器默认视图，REST 控制器默认响应体。
+- 支持 MVC `ControllerAdvice` 和 `RestControllerAdvice` 异常处理，并复用相同默认返回值语义。
 - 默认启用 UTF-8 字符集过滤器，并支持 Spring Boot 兼容的 Servlet 编码属性。
 - 支持可选隐藏 HTTP 方法过滤器，用于 HTML 表单方法覆盖。
 - 默认启用表单内容过滤器，让 PUT、PATCH 和 DELETE 的 URL 编码请求体可参与参数绑定。
@@ -175,6 +178,7 @@ Goark 官方维护的 Web 应用启动器模块。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
 MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream`、`SSE` 或 `Redirect`；生成路由和本启动器部署链路会保留响应状态码、响应头、Cookie、缓存头、条件请求校验器、JSON 响应体、协商后的 `produces` 媒体类型、重定向 Location 和流式响应头。
 通过 `mvc.Return` 构造的路由会遵循所在控制器：`mvc.NewController` 将字符串作为逻辑视图名，`mvc.NewRestController` 将普通返回值通过消息转换器写入响应体。
+全局异常处理器可以组织为 `mvc.NewControllerAdvice` 或 `mvc.NewRestControllerAdvice`；REST advice 默认把普通异常返回值写为响应体。
 路由可以在构造高成本响应体前调用 `goark.dev/goark/web.CheckNotModified`，以处理 `If-None-Match` 和 `If-Modified-Since` 请求。
 处理器可以返回 `goark.dev/goark/web.NewStatusError`，由默认 Problem Details 映射器输出对齐 Spring 风格的状态错误。
 业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、Cookie、拦截器、编解码器或底层传输。

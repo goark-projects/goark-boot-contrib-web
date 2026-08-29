@@ -34,6 +34,14 @@ type starterForwardedPayload struct {
 	Remote string `json:"remote"`
 }
 
+type starterAdviceError struct {
+	id string
+}
+
+func (e *starterAdviceError) Error() string {
+	return "starter advice " + e.id
+}
+
 func TestAutoConfigure_whenMVCControllerExists_shouldServeRequestWithArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
@@ -276,6 +284,50 @@ goark:
 	}
 	if restSnapshot.body != "UP" {
 		t.Fatalf("rest body = %q, want raw response body", restSnapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenRestControllerAdviceExists_shouldMapErrors(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.advice-controller", mvc.NewRestController("users",
+				mvc.GET("/advice/{id}", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (map[string]string, error) {
+					id, err := mvc.PathString(ctx, "id")
+					if err != nil {
+						return nil, err
+					}
+					return nil, &starterAdviceError{id: id}
+				})),
+			)),
+			mvc.NewRestControllerAdvice("test.mvc.rest-advice",
+				mvc.ExceptionReturnAs[*starterAdviceError](http.StatusConflict, func(_ *arkweb.Context, err *starterAdviceError) map[string]string {
+					return map[string]string{"id": err.id}
+				}),
+			),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/advice/42", http.StatusConflict)
+	if snapshot.header.Get("Content-Type") != "application/json" {
+		t.Fatalf("Content-Type = %q, want application/json", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != `{"id":"42"}` {
+		t.Fatalf("body = %q, want advice payload", snapshot.body)
 	}
 }
 
