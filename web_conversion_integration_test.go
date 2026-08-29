@@ -20,6 +20,10 @@ type starterTenantID struct {
 	value string
 }
 
+type starterScopedTenantID struct {
+	value string
+}
+
 type starterConversionPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -28,6 +32,11 @@ type starterConversionPayload struct {
 type starterSearchCriteria struct {
 	Page   int             `form:"page"`
 	Tenant starterTenantID `form:"tenant"`
+}
+
+type starterScopedSearchCriteria struct {
+	Page   int                   `form:"page"`
+	Tenant starterScopedTenantID `form:"tenant"`
 }
 
 type starterSearchOwner struct {
@@ -59,6 +68,12 @@ type starterMappedSearchCriteria struct {
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
+}
+
+type starterScopedSearchPayload struct {
+	Page        int    `json:"page"`
+	Tenant      string `json:"tenant"`
+	ParamTenant string `json:"paramTenant"`
 }
 
 type starterNestedSearchPayload struct {
@@ -220,6 +235,69 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 		mappedPayload.Groups[1] != "web" {
 		t.Fatalf("mapped search payload = %#v, want mapped model attribute", mappedPayload)
 	}
+}
+
+func TestAutoConfigure_whenControllerInitBinderExists_shouldUseScopedConvertersThroughArkhos(t *testing.T) {
+	localController := mvc.NewRestController("starter-local-search",
+		mvc.GET("/init-binder/local", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterScopedSearchPayload, error) {
+			criteria, err := mvc.ModelAttribute[starterScopedSearchCriteria](ctx)
+			if err != nil {
+				return starterScopedSearchPayload{}, err
+			}
+			tenant, err := mvc.RequestParamAs[starterScopedTenantID](ctx, "tenant")
+			if err != nil {
+				return starterScopedSearchPayload{}, err
+			}
+			return starterScopedSearchPayload{
+				Page:        criteria.Page,
+				Tenant:      criteria.Tenant.value,
+				ParamTenant: tenant.value,
+			}, nil
+		})),
+	).WithInitBinders(mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
+		return binder.AddConverter(mvc.ConverterFunc[string, starterScopedTenantID](func(value string) (starterScopedTenantID, error) {
+			return starterScopedTenantID{value: "starter-local:" + value}, nil
+		}))
+	}))
+	plainController := mvc.NewRestController("starter-plain-search",
+		mvc.GET("/init-binder/plain", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterScopedSearchPayload, error) {
+			criteria, err := mvc.ModelAttribute[starterScopedSearchCriteria](ctx)
+			if err != nil {
+				return starterScopedSearchPayload{}, err
+			}
+			return starterScopedSearchPayload{
+				Page:   criteria.Page,
+				Tenant: criteria.Tenant.value,
+			}, nil
+		})),
+	)
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			starterConversionConfiguration{},
+			mvc.NewConfiguration("test.mvc.init-binder", localController, plainController),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	localSnapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/init-binder/local?page=goark&tenant=blue", http.StatusOK)
+	var localPayload starterScopedSearchPayload
+	if err := arkjson.Unmarshal(nil, []byte(localSnapshot.body), &localPayload); err != nil {
+		t.Fatalf("local init binder json invalid: %v", err)
+	}
+	if localPayload.Page != 105 ||
+		localPayload.Tenant != "starter-local:blue" ||
+		localPayload.ParamTenant != "starter-local:blue" {
+		t.Fatalf("local init binder payload = %#v, want scoped conversion", localPayload)
+	}
+
+	requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/init-binder/plain?page=goark&tenant=blue", http.StatusBadRequest)
 }
 
 type starterConversionConfiguration struct{}
