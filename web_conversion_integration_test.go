@@ -74,6 +74,25 @@ type starterMappedSearchCriteria struct {
 	Tags    map[string][]string `form:"tags"`
 }
 
+type starterBinderProfile struct {
+	Email string `form:"email" json:"email"`
+	Admin bool   `form:"admin" json:"admin"`
+}
+
+type starterBinderRole struct {
+	Name  string `form:"name" json:"name"`
+	Admin bool   `form:"admin" json:"admin"`
+}
+
+type starterBinderInput struct {
+	Name     string                `form:"name" json:"name"`
+	System   string                `form:"system" json:"system"`
+	Admin    bool                  `form:"admin" json:"admin"`
+	Profile  *starterBinderProfile `form:"profile" json:"profile"`
+	Roles    []starterBinderRole   `form:"roles" json:"roles"`
+	Metadata map[string]string     `form:"metadata" json:"metadata"`
+}
+
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -111,6 +130,16 @@ type starterMappedSearchPayload struct {
 	Level  int      `json:"level"`
 	Roles  []string `json:"roles"`
 	Groups []string `json:"groups"`
+}
+
+type starterBinderPayload struct {
+	Name         string              `json:"name"`
+	System       string              `json:"system"`
+	Admin        bool                `json:"admin"`
+	ProfileEmail string              `json:"profileEmail"`
+	ProfileAdmin bool                `json:"profileAdmin"`
+	Roles        []starterBinderRole `json:"roles"`
+	Metadata     map[string]string   `json:"metadata"`
 }
 
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
@@ -315,6 +344,92 @@ func TestAutoConfigure_whenControllerInitBinderExists_shouldUseScopedConvertersT
 	requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/init-binder/plain?page=goark&tenant=blue", http.StatusBadRequest)
 }
 
+func TestAutoConfigure_whenInitBinderFieldFiltersExist_shouldBindModelAttributesThroughArkhos(t *testing.T) {
+	allowedController := mvc.NewRestController("starter-field-allowed",
+		mvc.GET("/field-binder/allowed", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterBinderPayload, error) {
+			input, err := mvc.ModelAttribute[starterBinderInput](ctx)
+			if err != nil {
+				return starterBinderPayload{}, err
+			}
+			return starterBinderPayloadFromInput(input), nil
+		})),
+	).WithInitBinders(mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
+		return binder.SetAllowedFields("name", "profile.email", "roles[*].name", "metadata[department]")
+	}))
+	disallowedController := mvc.NewRestController("starter-field-disallowed",
+		mvc.GET("/field-binder/disallowed", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterBinderPayload, error) {
+			input, err := mvc.ModelAttribute[starterBinderInput](ctx)
+			if err != nil {
+				return starterBinderPayload{}, err
+			}
+			return starterBinderPayloadFromInput(input), nil
+		})),
+	)
+	advice := mvc.NewRestControllerAdvice("starter-field-global-binder").WithInitBinders(
+		mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
+			return binder.SetDisallowedFields("SYSTEM")
+		}),
+	)
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.field-binders", allowedController, disallowedController).WithControllerAdvices(advice),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	baseURL := starterServerURL(t, app)
+	query := "?name=ada&system=root&admin=true&profile.email=ada@example.test&profile.admin=true&" +
+		"roles[0].name=reader&roles[0].admin=true&metadata[department]=engineering&metadata[secret]=root"
+
+	allowedSnapshot := requestUntilStatusSnapshot(t, baseURL+"/field-binder/allowed"+query, http.StatusOK)
+	var allowedPayload starterBinderPayload
+	if err := arkjson.Unmarshal(nil, []byte(allowedSnapshot.body), &allowedPayload); err != nil {
+		t.Fatalf("allowed field binder json invalid: %v", err)
+	}
+	if allowedPayload.Name != "ada" ||
+		allowedPayload.System != "" ||
+		allowedPayload.Admin ||
+		allowedPayload.ProfileEmail != "ada@example.test" ||
+		allowedPayload.ProfileAdmin {
+		t.Fatalf("allowed payload = %#v, want only explicitly allowed fields", allowedPayload)
+	}
+	if len(allowedPayload.Roles) != 1 || allowedPayload.Roles[0].Name != "reader" || allowedPayload.Roles[0].Admin {
+		t.Fatalf("allowed roles = %#v, want only role name", allowedPayload.Roles)
+	}
+	if allowedPayload.Metadata["department"] != "engineering" {
+		t.Fatalf("allowed metadata = %#v, want department", allowedPayload.Metadata)
+	}
+	if _, ok := allowedPayload.Metadata["secret"]; ok {
+		t.Fatalf("allowed metadata = %#v, want secret skipped", allowedPayload.Metadata)
+	}
+
+	disallowedSnapshot := requestUntilStatusSnapshot(t, baseURL+"/field-binder/disallowed"+query, http.StatusOK)
+	var disallowedPayload starterBinderPayload
+	if err := arkjson.Unmarshal(nil, []byte(disallowedSnapshot.body), &disallowedPayload); err != nil {
+		t.Fatalf("disallowed field binder json invalid: %v", err)
+	}
+	if disallowedPayload.Name != "ada" ||
+		disallowedPayload.System != "" ||
+		!disallowedPayload.Admin ||
+		disallowedPayload.ProfileEmail != "ada@example.test" ||
+		!disallowedPayload.ProfileAdmin {
+		t.Fatalf("disallowed payload = %#v, want only globally disallowed system field skipped", disallowedPayload)
+	}
+	if len(disallowedPayload.Roles) != 1 || disallowedPayload.Roles[0].Name != "reader" || !disallowedPayload.Roles[0].Admin {
+		t.Fatalf("disallowed roles = %#v, want role fields except global system", disallowedPayload.Roles)
+	}
+	if disallowedPayload.Metadata["department"] != "engineering" || disallowedPayload.Metadata["secret"] != "root" {
+		t.Fatalf("disallowed metadata = %#v, want non-system metadata preserved", disallowedPayload.Metadata)
+	}
+}
+
 func TestAutoConfigure_whenControllerAdviceInitBinderExists_shouldUseScopedConvertersThroughArkhos(t *testing.T) {
 	advice := mvc.NewRestControllerAdvice("starter-global-binders").WithInitBinders(
 		mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
@@ -402,4 +517,19 @@ func (starterConversionConfiguration) RegisterWithContext(_ context.Context, con
 	return gbcweb.RegisterConverter(config.Registry(), "testStringTenantIDConverter", convert.ConverterFunc[string, starterTenantID](func(value string) (starterTenantID, error) {
 		return starterTenantID{value: "tenant:" + value}, nil
 	}))
+}
+
+func starterBinderPayloadFromInput(input starterBinderInput) starterBinderPayload {
+	out := starterBinderPayload{
+		Name:     input.Name,
+		System:   input.System,
+		Admin:    input.Admin,
+		Roles:    input.Roles,
+		Metadata: input.Metadata,
+	}
+	if input.Profile != nil {
+		out.ProfileEmail = input.Profile.Email
+		out.ProfileAdmin = input.Profile.Admin
+	}
+	return out
 }
