@@ -21,6 +21,8 @@ const (
 	BeanNameHiddenHTTPMethodFilter = "goark.boot.web.hiddenHTTPMethodFilter"
 	// BeanNameFormContentFilter 是默认表单内容过滤器 Bean 名称。
 	BeanNameFormContentFilter = "goark.boot.web.formContentFilter"
+	// BeanNameFlashMapFilter 是默认 MVC FlashMap 过滤器 Bean 名称。
+	BeanNameFlashMapFilter = "goark.boot.web.mvc.flashMapFilter"
 	// BeanNameProblemDetailsMapper 是默认 Problem Details 错误映射器 Bean 名称。
 	BeanNameProblemDetailsMapper = "goark.boot.web.problemDetailsMapper"
 	// BeanNameErrorEndpoint 是默认错误端点配置器 Bean 名称。
@@ -86,6 +88,10 @@ const (
 	DefaultFormContentFilterEnabled = true
 	// DefaultFormContentMaxBodyBytes 是表单内容过滤器默认最大缓存体积。
 	DefaultFormContentMaxBodyBytes int64 = 1 << 20
+	// DefaultFlashMapFilterEnabled 表示默认启用 MVC FlashMap 过滤器。
+	DefaultFlashMapFilterEnabled = true
+	// DefaultFlashMapTimeout 是 FlashMap 默认存活时间。
+	DefaultFlashMapTimeout = 180 * time.Second
 	// DefaultErrorPath 是默认 Boot 风格错误端点路径。
 	DefaultErrorPath = "/error"
 	// DefaultViewTemplatesEnabled 表示默认启用模板视图约定。
@@ -169,6 +175,10 @@ const (
 	PropertyFormContentFilterEnabled = "goark.web.filters.form-content.enabled"
 	// PropertyFormContentMaxBodyBytes 设置表单内容过滤器最大缓存体积。
 	PropertyFormContentMaxBodyBytes = "goark.web.filters.form-content.max-body-bytes"
+	// PropertyFlashMapFilterEnabled 设置是否启用 MVC FlashMap 过滤器。
+	PropertyFlashMapFilterEnabled = "goark.web.mvc.flash.enabled"
+	// PropertyFlashMapTimeout 设置 MVC FlashMap 过期时间。
+	PropertyFlashMapTimeout = "goark.web.mvc.flash.timeout"
 	// PropertyErrorEndpointEnabled 设置是否注册默认错误端点。
 	PropertyErrorEndpointEnabled = "goark.web.error.enabled"
 	// PropertyErrorPath 设置默认错误端点路径。

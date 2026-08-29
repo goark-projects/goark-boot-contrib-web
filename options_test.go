@@ -45,6 +45,9 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
 	}
+	if !settings.filters.flashMap.enabled || settings.filters.flashMap.timeout != DefaultFlashMapTimeout {
+		t.Fatalf("flash map defaults = %+v", settings.filters.flashMap)
+	}
 	if !settings.filters.characterEncoding.enabled ||
 		settings.filters.characterEncoding.encoding != DefaultCharacterEncoding ||
 		!settings.filters.characterEncoding.forceRequest ||
@@ -109,6 +112,8 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyHiddenHTTPMethodFilterEnabled:          "true",
 		PropertyFormContentFilterEnabled:               "true",
 		PropertyFormContentMaxBodyBytes:                "2048",
+		PropertyFlashMapFilterEnabled:                  "true",
+		PropertyFlashMapTimeout:                        "45s",
 		PropertyErrorEndpointEnabled:                   "true",
 		PropertyErrorPath:                              "/failure",
 		PropertyProblemDetailsEnabled:                  "true",
@@ -180,6 +185,9 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.formContent.enabled || settings.filters.formContent.maxBodyBytes != 2048 {
 		t.Fatalf("form content settings = %+v", settings.filters.formContent)
 	}
+	if !settings.filters.flashMap.enabled || settings.filters.flashMap.timeout != 45*time.Second {
+		t.Fatalf("flash map settings = %+v", settings.filters.flashMap)
+	}
 	if !settings.errorHandling.enabled ||
 		!settings.errorHandling.problemDetailsEnabled ||
 		settings.errorHandling.path != "/failure" {
@@ -233,6 +241,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithFormContentFilterEnabled(true),
 		WithFormContentMaxBodyBytes(1024),
 		WithFormContentFilterOptions(gowebfilter.WithFormContentMethods(http.MethodDelete)),
+		WithFlashMapFilterEnabled(true),
+		WithFlashMapTimeout(90 * time.Second),
 		WithErrorEndpointEnabled(true),
 		WithErrorPath("/option-error"),
 		WithProblemDetailsEnabled(true),
@@ -283,6 +293,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		!settings.filters.formContent.enabled ||
 		settings.filters.formContent.maxBodyBytes != 1024 ||
 		len(settings.filters.formContent.options) != 1 ||
+		!settings.filters.flashMap.enabled ||
+		settings.filters.flashMap.timeout != 90*time.Second ||
 		!settings.filters.shallowETag.enabled ||
 		settings.filters.shallowETag.maxBodyBytes != 512 {
 		t.Fatalf("filter options did not override environment: %+v", settings.filters)
@@ -381,6 +393,21 @@ func TestNewSettings_whenSpringHiddenMethodPropertyExists_shouldApplyCompatibleP
 	}
 }
 
+func TestNewSettings_whenFlashMapTimeoutPropertyIsBlank_shouldKeepDefault(t *testing.T) {
+	environment := newTestEnvironment(t, map[string]any{
+		PropertyFlashMapTimeout: " ",
+	})
+
+	settings, err := newSettings(environment, nil)
+	if err != nil {
+		t.Fatalf("new settings failed: %v", err)
+	}
+
+	if settings.filters.flashMap.timeout != DefaultFlashMapTimeout {
+		t.Fatalf("flash map timeout = %s, want %s", settings.filters.flashMap.timeout, DefaultFlashMapTimeout)
+	}
+}
+
 func TestNewSettings_whenContextPathIsInvalid_shouldReturnError(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
 		PropertyServletContextPath: "admin",
@@ -413,6 +440,12 @@ func TestNewSettings_whenHTTPClientPropertiesAreInvalid_shouldReturnError(t *tes
 			name: "form content max body bytes",
 			values: map[string]any{
 				PropertyFormContentMaxBodyBytes: "-1",
+			},
+		},
+		{
+			name: "flash map timeout",
+			values: map[string]any{
+				PropertyFlashMapTimeout: "-1s",
 			},
 		},
 		{

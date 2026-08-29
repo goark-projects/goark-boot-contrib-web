@@ -5,12 +5,14 @@ import (
 	"strings"
 	"time"
 
+	"goark.dev/arkarta/servlet/session"
 	goarkcontainer "goark.dev/goark/container"
 	coreenv "goark.dev/goark/core/env"
 	arkerrors "goark.dev/goark/errors"
 	goweb "goark.dev/goark/web"
 	gowebcors "goark.dev/goark/web/cors"
 	gowebfilter "goark.dev/goark/web/filter"
+	mvcflash "goark.dev/goark/web/mvc/flash"
 )
 
 const (
@@ -50,6 +52,7 @@ const (
 	orderCORSFilter                            = -200
 	orderHiddenHTTPMethodFilter                = -100
 	orderFormContentFilter                     = -90
+	orderFlashMapFilter                        = -80
 	orderShallowETagFilter                     = 100
 )
 
@@ -58,6 +61,7 @@ type filterSettings struct {
 	cors              corsFilterSettings
 	forwardedHeaders  forwardedHeadersSettings
 	formContent       formContentSettings
+	flashMap          flashMapSettings
 	hiddenMethod      hiddenMethodSettings
 	shallowETag       shallowETagSettings
 }
@@ -96,6 +100,11 @@ type formContentSettings struct {
 	options      []gowebfilter.FormContentOption
 }
 
+type flashMapSettings struct {
+	enabled bool
+	timeout time.Duration
+}
+
 func defaultFilterSettings() filterSettings {
 	return filterSettings{
 		characterEncoding: characterEncodingSettings{
@@ -104,9 +113,12 @@ func defaultFilterSettings() filterSettings {
 			forceRequest:  DefaultForceRequestCharacterEncoding,
 			forceResponse: DefaultForceResponseCharacterEncoding,
 		},
-		formContent:  formContentSettings{enabled: DefaultFormContentFilterEnabled, maxBodyBytes: DefaultFormContentMaxBodyBytes},
-		hiddenMethod: hiddenMethodSettings{enabled: DefaultHiddenHTTPMethodFilterEnabled},
-		shallowETag:  shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
+		formContent: formContentSettings{enabled: DefaultFormContentFilterEnabled, maxBodyBytes: DefaultFormContentMaxBodyBytes},
+		flashMap:    flashMapSettings{enabled: DefaultFlashMapFilterEnabled, timeout: DefaultFlashMapTimeout},
+		hiddenMethod: hiddenMethodSettings{
+			enabled: DefaultHiddenHTTPMethodFilterEnabled,
+		},
+		shallowETag: shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
 	}
 }
 
@@ -257,6 +269,25 @@ func WithFormContentFilterOptions(options ...gowebfilter.FormContentOption) Opti
 	}
 }
 
+// WithFlashMapFilterEnabled 设置是否启用 MVC FlashMap 过滤器。
+func WithFlashMapFilterEnabled(enabled bool) Option {
+	return func(settings *settings) error {
+		settings.filters.flashMap.enabled = enabled
+		return nil
+	}
+}
+
+// WithFlashMapTimeout 设置 MVC FlashMap 过期时间。
+func WithFlashMapTimeout(timeout time.Duration) Option {
+	return func(settings *settings) error {
+		if timeout <= 0 {
+			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "flash map timeout %s must be > 0", timeout)
+		}
+		settings.filters.flashMap.timeout = timeout
+		return nil
+	}
+}
+
 func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error {
 	if value, ok := firstProperty(environment, PropertyCORSEnabled, propertySpringWebCORSEnabled, propertySpringMVCCORSEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyCORSEnabled, value)
@@ -393,6 +424,24 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		}
 		s.filters.formContent.maxBodyBytes = size
 	}
+	if value, ok := environment.GetProperty(PropertyFlashMapFilterEnabled); ok {
+		enabled, err := parseBoolProperty(PropertyFlashMapFilterEnabled, value)
+		if err != nil {
+			return err
+		}
+		s.filters.flashMap.enabled = enabled
+	}
+	if value, ok := environment.GetProperty(PropertyFlashMapTimeout); ok {
+		if strings.TrimSpace(value) != "" {
+			timeout, err := parseDurationProperty(PropertyFlashMapTimeout, value)
+			if err != nil {
+				return err
+			}
+			if err := WithFlashMapTimeout(timeout)(s); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -437,6 +486,18 @@ func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettin
 		if err := goweb.RegisterFilter(registry, BeanNameFormContentFilter, gowebfilter.FormContent(
 			options...,
 		), goarkcontainer.WithOrder(orderFormContentFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.flashMap.enabled {
+		filter, err := mvcflash.NewSessionFilter(
+			session.NewMemoryManager(),
+			mvcflash.WithTimeout(settings.flashMap.timeout),
+		)
+		if err != nil {
+			return err
+		}
+		if err := goweb.RegisterFilter(registry, BeanNameFlashMapFilter, filter, goarkcontainer.WithOrder(orderFlashMapFilter)); err != nil {
 			return err
 		}
 	}
