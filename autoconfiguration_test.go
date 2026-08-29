@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"goark.dev/arkarta/servlet"
 	arkweb "goark.dev/arkarta/web"
 	"goark.dev/boot"
 	"goark.dev/boot/configdata"
@@ -428,6 +429,55 @@ goark:
 	}
 	if snapshot.body != "" {
 		t.Fatalf("body = %q, want empty", snapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenControllerReturnsForwardViewName_shouldDispatchTarget(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.forward", mvc.NewController("forwards",
+			mvc.GET("/source", mvc.Return(0, func(_ *arkweb.Context) (string, error) {
+				return "forward:/target?from=source", nil
+			})),
+			mvc.GET("/target", mvc.ResponseBody(http.StatusAccepted, func(ctx *arkweb.Context) (string, error) {
+				forwardURI, ok := ctx.Request().Attribute(servlet.AttributeForwardRequestURI)
+				uri, ok := forwardURI.(string)
+				if !ok {
+					return "missing-forward-attribute", nil
+				}
+				return ctx.QueryValue("from") + ":" + uri, nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/source", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", "text/plain")
+		return request, nil
+	}, http.StatusAccepted)
+	if snapshot.header.Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want text/plain", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != "source:/source" {
+		t.Fatalf("body = %q, want forwarded target body", snapshot.body)
 	}
 }
 
