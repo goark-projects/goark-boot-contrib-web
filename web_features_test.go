@@ -95,6 +95,9 @@ goark:
 					AllowedHeaders: []string{"X-Request-ID"},
 					ExposedHeaders: []string{"X-Starter-Scoped-Interceptor"},
 				})),
+				mvc.GET("/api/v1/contracts", mvc.JSON(http.StatusOK, func(*arkweb.Context) (starterEventPayload, error) {
+					return starterEventPayload{State: "API"}, nil
+				})),
 			)),
 		),
 	)
@@ -201,6 +204,17 @@ goark:
 		t.Fatalf("contract body = %q, want negotiated JSON", contractSnapshot.body)
 	}
 
+	apiContractSnapshot := requestUntilStatusSnapshot(t, serverURL+"/api/v1/contracts", http.StatusOK)
+	if got := apiContractSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "hit" {
+		t.Fatalf("api contract scoped filter = %q, want hit", got)
+	}
+	if got := apiContractSnapshot.header.Get("X-Starter-Scoped-Interceptor"); got != "hit" {
+		t.Fatalf("api contract scoped interceptor = %q, want hit", got)
+	}
+	if apiContractSnapshot.body != `{"state":"API"}` {
+		t.Fatalf("api contract body = %q, want API JSON", apiContractSnapshot.body)
+	}
+
 	preflightSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
 		request, err := http.NewRequestWithContext(t.Context(), http.MethodOptions, serverURL+"/contracts", nil)
 		if err != nil {
@@ -249,7 +263,7 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(_ context.Context, co
 	})); err != nil {
 		return err
 	}
-	interceptorMapping, err := goweb.NewInterceptorMapping(goweb.WithInterceptorPathPatterns("/contracts"))
+	interceptorMapping, err := goweb.NewInterceptorMapping(goweb.WithInterceptorPathPatterns("/**/contracts"))
 	if err != nil {
 		return err
 	}
@@ -259,7 +273,7 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(_ context.Context, co
 	}), interceptorMapping); err != nil {
 		return err
 	}
-	filterMapping, err := goweb.NewFilterMapping(goweb.WithFilterPathPatterns("/contracts"))
+	filterMapping, err := goweb.NewFilterMapping(goweb.WithFilterPathPatterns("/**/contracts"))
 	if err != nil {
 		return err
 	}
