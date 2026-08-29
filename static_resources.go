@@ -19,6 +19,7 @@ const (
 	propertySpringStaticCacheControl = "spring.web.resources.cache.cache-control"
 	propertySpringStaticCacheMaxAge  = "spring.web.resources.cache.cachecontrol.max-age"
 	propertySpringStaticCachePeriod  = "spring.web.resources.cache.period"
+	propertySpringStaticContentChain = "spring.web.resources.chain.strategy.content.enabled"
 )
 
 type staticResourceSettings struct {
@@ -29,14 +30,16 @@ type staticResourceSettings struct {
 	welcomeFiles    []string
 	welcomeFilesSet bool
 	cacheControl    string
+	contentVersion  bool
 }
 
 func defaultStaticResourceSettings() staticResourceSettings {
 	return staticResourceSettings{
-		enabled:     DefaultStaticResourcesEnabled,
-		locations:   splitStaticResourceList([]string{DefaultStaticResourcesLocations}),
-		pattern:     DefaultStaticResourcesPattern,
-		servletName: DefaultStaticResourcesServletName,
+		enabled:        DefaultStaticResourcesEnabled,
+		locations:      splitStaticResourceList([]string{DefaultStaticResourcesLocations}),
+		pattern:        DefaultStaticResourcesPattern,
+		servletName:    DefaultStaticResourcesServletName,
+		contentVersion: DefaultStaticResourceContentVersioningEnabled,
 	}
 }
 
@@ -57,6 +60,9 @@ func registerStaticResources(registry *goarkcontainer.Registry, settings staticR
 	}
 	if settings.cacheControl != "" {
 		options = append(options, static.WithCacheControl(settings.cacheControl))
+	}
+	if settings.contentVersion {
+		options = append(options, static.WithContentVersioning())
 	}
 	return static.Register(registry, BeanNameStaticResources, settings.pattern, fallbackFS{roots: roots}, options...)
 }

@@ -32,7 +32,8 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		len(settings.staticResources.locations) != len(defaultLocations) ||
 		settings.staticResources.locations[0] != "resource/static" ||
 		settings.staticResources.locations[len(settings.staticResources.locations)-1] != "resource/META-INF/resources" ||
-		settings.staticResources.pattern != DefaultStaticResourcesPattern {
+		settings.staticResources.pattern != DefaultStaticResourcesPattern ||
+		settings.staticResources.contentVersion != DefaultStaticResourceContentVersioningEnabled {
 		t.Fatalf("static resources defaults = %+v", settings.staticResources)
 	}
 	if settings.filters.cors.enabled ||
@@ -61,38 +62,39 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 
 func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		PropertyApplicationName:             "admin",
-		PropertyServletContextPath:          "/admin",
-		PropertyServletMapping:              "/api/*",
-		PropertyStaticResourcesLocations:    "resource/static, resource/public",
-		PropertyStaticResourcesPattern:      "/assets/*",
-		PropertyStaticResourcesServletName:  "adminStatic",
-		PropertyStaticResourcesWelcomeFiles: "index.html, home.html",
-		PropertyStaticResourcesEnabled:      "true",
-		PropertyStaticResourcesCacheControl: "public, max-age=60",
-		PropertyViewTemplatesEnabled:        "true",
-		PropertyViewTemplatesLocation:       "classpath:/templates/",
-		PropertyViewTemplatePrefix:          "pages",
-		PropertyViewTemplateSuffix:          ".tmpl",
-		PropertyViewTemplateContentType:     "text/plain; charset=utf-8",
-		PropertyCORSEnabled:                 "true",
-		PropertyCORSAllowedOrigins:          "https://admin.example.com",
-		PropertyCORSAllowedMethods:          "GET,POST",
-		PropertyCORSAllowedHeaders:          "X-Request-ID,Content-Type",
-		PropertyCORSExposedHeaders:          "X-Trace-ID",
-		PropertyCORSAllowCredentials:        "true",
-		PropertyCORSMaxAge:                  "10m",
-		PropertyForwardedHeadersEnabled:     "true",
-		PropertyShallowETagEnabled:          "true",
-		PropertyShallowETagMaxBodyBytes:     "4096",
-		PropertyErrorEndpointEnabled:        "true",
-		PropertyErrorPath:                   "/failure",
-		PropertyProblemDetailsEnabled:       "true",
-		PropertyHTTPClientEnabled:           "true",
-		PropertyHTTPClientBaseURL:           "https://api.example.com/v1",
-		PropertyHTTPClientTimeout:           "2s",
-		PropertyHTTPClientMaxResponseBytes:  "8192",
-		PropertyHTTPClientDefaultHeaders:    "X-App=goark, X-Trace=enabled",
+		PropertyApplicationName:                        "admin",
+		PropertyServletContextPath:                     "/admin",
+		PropertyServletMapping:                         "/api/*",
+		PropertyStaticResourcesLocations:               "resource/static, resource/public",
+		PropertyStaticResourcesPattern:                 "/assets/*",
+		PropertyStaticResourcesServletName:             "adminStatic",
+		PropertyStaticResourcesWelcomeFiles:            "index.html, home.html",
+		PropertyStaticResourcesEnabled:                 "true",
+		PropertyStaticResourcesCacheControl:            "public, max-age=60",
+		PropertyStaticResourceContentVersioningEnabled: "true",
+		PropertyViewTemplatesEnabled:                   "true",
+		PropertyViewTemplatesLocation:                  "classpath:/templates/",
+		PropertyViewTemplatePrefix:                     "pages",
+		PropertyViewTemplateSuffix:                     ".tmpl",
+		PropertyViewTemplateContentType:                "text/plain; charset=utf-8",
+		PropertyCORSEnabled:                            "true",
+		PropertyCORSAllowedOrigins:                     "https://admin.example.com",
+		PropertyCORSAllowedMethods:                     "GET,POST",
+		PropertyCORSAllowedHeaders:                     "X-Request-ID,Content-Type",
+		PropertyCORSExposedHeaders:                     "X-Trace-ID",
+		PropertyCORSAllowCredentials:                   "true",
+		PropertyCORSMaxAge:                             "10m",
+		PropertyForwardedHeadersEnabled:                "true",
+		PropertyShallowETagEnabled:                     "true",
+		PropertyShallowETagMaxBodyBytes:                "4096",
+		PropertyErrorEndpointEnabled:                   "true",
+		PropertyErrorPath:                              "/failure",
+		PropertyProblemDetailsEnabled:                  "true",
+		PropertyHTTPClientEnabled:                      "true",
+		PropertyHTTPClientBaseURL:                      "https://api.example.com/v1",
+		PropertyHTTPClientTimeout:                      "2s",
+		PropertyHTTPClientMaxResponseBytes:             "8192",
+		PropertyHTTPClientDefaultHeaders:               "X-App=goark, X-Trace=enabled",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -117,7 +119,8 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		settings.staticResources.servletName != "adminStatic" ||
 		len(settings.staticResources.welcomeFiles) != 2 ||
 		settings.staticResources.welcomeFiles[1] != "home.html" ||
-		settings.staticResources.cacheControl != "public, max-age=60" {
+		settings.staticResources.cacheControl != "public, max-age=60" ||
+		!settings.staticResources.contentVersion {
 		t.Fatalf("static resources settings = %+v", settings.staticResources)
 	}
 	if !settings.filters.cors.enabled ||
@@ -173,6 +176,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithStaticResourceLocations("resource/option"),
 		WithStaticResourcePattern("/option-static/*"),
 		WithStaticResourceCacheMaxAge(2 * time.Minute),
+		WithStaticResourceContentVersioning(true),
 		WithViewTemplatesLocation("resource/views"),
 		WithViewTemplatePrefix("admin"),
 		WithViewTemplateSuffix(".tmpl"),
@@ -204,7 +208,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	if len(settings.staticResources.locations) != 1 ||
 		settings.staticResources.locations[0] != "resource/option" ||
 		settings.staticResources.pattern != "/option-static/*" ||
-		settings.staticResources.cacheControl != "public, max-age=120" {
+		settings.staticResources.cacheControl != "public, max-age=120" ||
+		!settings.staticResources.contentVersion {
 		t.Fatalf("static options did not override environment: %+v", settings.staticResources)
 	}
 	if len(settings.arkhosOptions) != 1 {
@@ -245,6 +250,7 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		propertySpringStaticCacheControl: "private, max-age=30",
 		propertySpringStaticCacheMaxAge:  "10m",
 		propertySpringStaticCachePeriod:  "5m",
+		propertySpringStaticContentChain: "true",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -256,7 +262,8 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		settings.staticResources.locations[0] != "resource\\static" && settings.staticResources.locations[0] != "resource/static" ||
 		settings.staticResources.locations[1] != "public" ||
 		settings.staticResources.pattern != "/content/*" ||
-		settings.staticResources.cacheControl != "private, max-age=30" {
+		settings.staticResources.cacheControl != "private, max-age=30" ||
+		!settings.staticResources.contentVersion {
 		t.Fatalf("spring static settings = %+v", settings.staticResources)
 	}
 }

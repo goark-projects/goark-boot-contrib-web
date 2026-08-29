@@ -24,6 +24,7 @@ import (
 	webclient "goark.dev/goark/web/client"
 	"goark.dev/goark/web/mvc"
 	mvcview "goark.dev/goark/web/mvc/view"
+	gowebstatic "goark.dev/goark/web/static"
 )
 
 var errStarterMapped = errors.New("starter mapped")
@@ -123,6 +124,9 @@ goark:
         locations: public
         pattern: /assets/*
         welcome-files: index.html
+        chain:
+          content:
+            enabled: true
         cache:
           max-age: 1h
 `)
@@ -150,6 +154,13 @@ goark:
 	}
 	if body := requestUntilOK(t, serverURL+"/assets/"); body != "configured index" {
 		t.Fatalf("configured welcome body = %q", body)
+	}
+	versioned, err := gowebstatic.ContentVersionPath(t.Context(), os.DirFS(publicDir), "app.txt")
+	if err != nil {
+		t.Fatalf("ContentVersionPath failed: %v", err)
+	}
+	if body := requestUntilOK(t, serverURL+"/assets/"+versioned); body != "configured static" {
+		t.Fatalf("versioned static body = %q", body)
 	}
 }
 

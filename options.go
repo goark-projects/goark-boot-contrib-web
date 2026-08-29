@@ -148,6 +148,14 @@ func WithStaticResourceCacheMaxAge(maxAge time.Duration) Option {
 	}
 }
 
+// WithStaticResourceContentVersioning 设置是否启用静态资源内容哈希版本路径。
+func WithStaticResourceContentVersioning(enabled bool) Option {
+	return func(config *settings) error {
+		config.staticResources.contentVersion = enabled
+		return nil
+	}
+}
+
 // WithViewTemplatesEnabled 设置是否启用默认 MVC 模板视图约定。
 func WithViewTemplatesEnabled(enabled bool) Option {
 	return func(config *settings) error {
@@ -333,6 +341,15 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 			return err
 		}
 		if err := WithStaticResourceCacheMaxAge(maxAge)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := firstProperty(environment, PropertyStaticResourceContentVersioningEnabled, propertySpringStaticContentChain); ok {
+		enabled, err := parseBoolProperty(PropertyStaticResourceContentVersioningEnabled, value)
+		if err != nil {
+			return err
+		}
+		if err := WithStaticResourceContentVersioning(enabled)(s); err != nil {
 			return err
 		}
 	}
