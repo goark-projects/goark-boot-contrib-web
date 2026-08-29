@@ -59,6 +59,9 @@ func (c configuration) RegisterWithContext(_ context.Context, config appcontext.
 	if err := registerMessageIO(config.Registry()); err != nil {
 		return err
 	}
+	if err := registerWebValidator(config.Registry()); err != nil {
+		return err
+	}
 	if err := registerMVCConversion(config.Registry()); err != nil {
 		return err
 	}

@@ -29,6 +29,10 @@ const (
 	BeanNameMessageWriter = "goark.boot.web.messageWriter"
 	// BeanNameMessageIOConfigurer 是默认消息读写器 Web 配置器 Bean 名称。
 	BeanNameMessageIOConfigurer = "goark.boot.web.messageIOConfigurer"
+	// BeanNameValidator 是默认 Web 校验器 Bean 名称。
+	BeanNameValidator = "goark.boot.web.validator"
+	// BeanNameValidatorConfigurer 是默认 Web 校验器配置器 Bean 名称。
+	BeanNameValidatorConfigurer = "goark.boot.web.validatorConfigurer"
 	// BeanNameConversionService 是默认 MVC 参数转换服务 Bean 名称。
 	BeanNameConversionService = "goark.boot.web.mvc.conversionService"
 	// BeanNameConversionConfigurer 是默认 MVC 参数转换服务配置器 Bean 名称。
