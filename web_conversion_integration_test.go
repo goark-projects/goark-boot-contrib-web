@@ -40,6 +40,17 @@ type starterNestedSearchCriteria struct {
 	Page  int                 `form:"page"`
 }
 
+type starterIndexedSearchCriteria struct {
+	Owners []starterIndexedSearchOwner `form:"owners"`
+	Page   int                         `form:"page"`
+}
+
+type starterIndexedSearchOwner struct {
+	Name    string   `form:"name"`
+	Level   int      `form:"level"`
+	Aliases []string `form:"aliases"`
+}
+
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -49,6 +60,16 @@ type starterNestedSearchPayload struct {
 	OwnerName  string `json:"ownerName"`
 	OwnerLevel int    `json:"ownerLevel"`
 	Page       int    `json:"page"`
+}
+
+type starterIndexedSearchPayload struct {
+	FirstName   string `json:"firstName"`
+	FirstLevel  int    `json:"firstLevel"`
+	FirstAlias  string `json:"firstAlias"`
+	SecondName  string `json:"secondName"`
+	SecondLevel int    `json:"secondLevel"`
+	SecondAlias string `json:"secondAlias"`
+	Page        int    `json:"page"`
 }
 
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
@@ -95,6 +116,21 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 						Page:       criteria.Page,
 					}, nil
 				})),
+				mvc.GET("/search/indexed", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterIndexedSearchPayload, error) {
+					criteria, err := mvc.ModelAttribute[starterIndexedSearchCriteria](ctx)
+					if err != nil {
+						return starterIndexedSearchPayload{}, err
+					}
+					return starterIndexedSearchPayload{
+						FirstName:   criteria.Owners[0].Name,
+						FirstLevel:  criteria.Owners[0].Level,
+						FirstAlias:  criteria.Owners[0].Aliases[0],
+						SecondName:  criteria.Owners[1].Name,
+						SecondLevel: criteria.Owners[1].Level,
+						SecondAlias: criteria.Owners[1].Aliases[0],
+						Page:        criteria.Page,
+					}, nil
+				})),
 			)),
 		),
 	)
@@ -128,6 +164,23 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 	}
 	if nestedPayload.OwnerName != "ada" || nestedPayload.OwnerLevel != 105 || nestedPayload.Page != 102 {
 		t.Fatalf("nested search payload = %#v, want nested model attribute", nestedPayload)
+	}
+
+	indexedSnapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/search/indexed?"+
+		"owners[0].name=ada&owners[0].level=admin&owners[0].aliases[0]=lead&"+
+		"owners[1].name=linus&owners[1].level=kernel&owners[1].aliases[0]=maintainer&page=xy", http.StatusOK)
+	var indexedPayload starterIndexedSearchPayload
+	if err := arkjson.Unmarshal(nil, []byte(indexedSnapshot.body), &indexedPayload); err != nil {
+		t.Fatalf("indexed search json invalid: %v", err)
+	}
+	if indexedPayload.FirstName != "ada" ||
+		indexedPayload.FirstLevel != 105 ||
+		indexedPayload.FirstAlias != "lead" ||
+		indexedPayload.SecondName != "linus" ||
+		indexedPayload.SecondLevel != 106 ||
+		indexedPayload.SecondAlias != "maintainer" ||
+		indexedPayload.Page != 102 {
+		t.Fatalf("indexed search payload = %#v, want indexed model attribute", indexedPayload)
 	}
 }
 
