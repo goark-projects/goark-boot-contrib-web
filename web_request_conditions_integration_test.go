@@ -92,3 +92,49 @@ goark:
 		return request, nil
 	}, http.StatusBadRequest)
 }
+
+func TestAutoConfigure_whenSamePathRequestConditionsExist_shouldDispatchThroughArkhos(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root+"/app.yml", `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.request-condition-dispatch", mvc.NewRestController("conditionDispatch",
+			mvc.GET("/condition-dispatch", mvc.JSON(http.StatusOK, func(*arkweb.Context) (map[string]string, error) {
+				return map[string]string{"mode": "fast"}, nil
+			}), mvc.WithParams("mode=fast")),
+			mvc.GET("/condition-dispatch", mvc.JSON(http.StatusOK, func(*arkweb.Context) (map[string]string, error) {
+				return map[string]string{"mode": "default"}, nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	assertConditionDispatchPayload(t, serverURL+"/condition-dispatch?mode=fast", "fast")
+	assertConditionDispatchPayload(t, serverURL+"/condition-dispatch", "default")
+}
+
+func assertConditionDispatchPayload(t *testing.T, target string, wantMode string) {
+	t.Helper()
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		return http.NewRequestWithContext(t.Context(), http.MethodGet, target, nil)
+	}, http.StatusOK)
+	var payload map[string]string
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("response json invalid: %v", err)
+	}
+	if payload["mode"] != wantMode {
+		t.Fatalf("payload = %#v, want mode %q", payload, wantMode)
+	}
+}
