@@ -27,6 +27,13 @@ type starterValidatorRequest struct {
 	Name string `json:"name"`
 }
 
+type starterBindingResultPayload struct {
+	Valid bool   `json:"valid"`
+	Path  string `json:"path"`
+	Code  string `json:"code"`
+	Name  string `json:"name"`
+}
+
 func TestAutoConfigure_whenValidatorExists_shouldBindMVCValidation(t *testing.T) {
 	app, err := boot.Run(
 		t.Context(),
@@ -57,6 +64,56 @@ func TestAutoConfigure_whenValidatorExists_shouldBindMVCValidation(t *testing.T)
 	}, http.StatusUnprocessableEntity)
 	if !strings.Contains(snapshot.body, `"code":"reserved"`) || !strings.Contains(snapshot.body, `"path":"name"`) {
 		t.Fatalf("validation body = %q, want custom violation", snapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenBindingResultRouteExists_shouldHandleValidationResult(t *testing.T) {
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			starterValidatorConfiguration{},
+			mvc.NewConfiguration("test.mvc.binding-result", mvc.NewRestController("bindingResult",
+				mvc.POST("/binding-result", mvc.BindJSONResult(http.StatusOK,
+					func(_ *arkweb.Context, input starterValidatorRequest, result mvc.BindingResult) (starterBindingResultPayload, error) {
+						field, ok := result.FieldError("name")
+						if !ok {
+							return starterBindingResultPayload{Valid: result.Valid(), Name: input.Name}, nil
+						}
+						return starterBindingResultPayload{
+							Valid: result.Valid(),
+							Path:  field.Path(),
+							Code:  field.Code(),
+							Name:  input.Name,
+						}, nil
+					},
+				)),
+			)),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, starterServerURL(t, app)+"/binding-result", strings.NewReader(`{"name":"root"}`))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", arkjson.ContentType)
+		request.Header.Set("Accept", arkjson.ContentType)
+		return request, nil
+	}, http.StatusOK)
+
+	var payload starterBindingResultPayload
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("binding result json invalid: %v", err)
+	}
+	if payload.Valid || payload.Path != "name" || payload.Code != "reserved" || payload.Name != "root" {
+		t.Fatalf("binding result payload = %#v, want controller-handled validation result", payload)
 	}
 }
 
