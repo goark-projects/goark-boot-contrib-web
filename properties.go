@@ -46,6 +46,8 @@ const (
 	DefaultStaticResourcesServletName = "goark.boot.web.static"
 	// DefaultStaticResourceContentVersioningEnabled 表示默认关闭内容哈希版本路径。
 	DefaultStaticResourceContentVersioningEnabled = false
+	// DefaultStaticResourceFixedVersion 是默认固定版本路径前缀。
+	DefaultStaticResourceFixedVersion = ""
 	// DefaultShallowETagMaxBodyBytes 是浅 ETag 默认最大缓存体积。
 	DefaultShallowETagMaxBodyBytes int64 = 1 << 20
 	// DefaultErrorPath 是默认 Boot 风格错误端点路径。
@@ -91,6 +93,8 @@ const (
 	PropertyStaticResourcesCacheMaxAge = "goark.web.resources.static.cache.max-age"
 	// PropertyStaticResourceContentVersioningEnabled 设置是否启用内容哈希版本路径。
 	PropertyStaticResourceContentVersioningEnabled = "goark.web.resources.static.chain.content.enabled"
+	// PropertyStaticResourceFixedVersion 设置静态资源固定版本路径前缀。
+	PropertyStaticResourceFixedVersion = "goark.web.resources.static.chain.fixed.version"
 	// PropertyCORSEnabled 设置是否启用 CORS 过滤器。
 	PropertyCORSEnabled = "goark.web.cors.enabled"
 	// PropertyCORSAllowedOrigins 设置允许的 CORS Origin 列表。

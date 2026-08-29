@@ -11,6 +11,7 @@ import (
 	gbcarkhos "goark.dev/gbc-arkhos"
 	coreenv "goark.dev/goark/core/env"
 	arkerrors "goark.dev/goark/errors"
+	gowebstatic "goark.dev/goark/web/static"
 )
 
 // Option 定制 Web 自动配置。
@@ -152,6 +153,22 @@ func WithStaticResourceCacheMaxAge(maxAge time.Duration) Option {
 func WithStaticResourceContentVersioning(enabled bool) Option {
 	return func(config *settings) error {
 		config.staticResources.contentVersion = enabled
+		return nil
+	}
+}
+
+// WithStaticResourceFixedVersion 设置静态资源固定版本路径前缀。
+func WithStaticResourceFixedVersion(version string) Option {
+	return func(config *settings) error {
+		version = strings.TrimSpace(version)
+		if version == "" {
+			config.staticResources.fixedVersion = ""
+			return nil
+		}
+		if _, err := gowebstatic.FixedVersionPath(version, "asset.txt"); err != nil {
+			return arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "static resource fixed version %q is invalid", version)
+		}
+		config.staticResources.fixedVersion = version
 		return nil
 	}
 }
@@ -350,6 +367,11 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 			return err
 		}
 		if err := WithStaticResourceContentVersioning(enabled)(s); err != nil {
+			return err
+		}
+	}
+	if value, ok := firstProperty(environment, PropertyStaticResourceFixedVersion, propertySpringStaticFixedVersion); ok {
+		if err := WithStaticResourceFixedVersion(value)(s); err != nil {
 			return err
 		}
 	}

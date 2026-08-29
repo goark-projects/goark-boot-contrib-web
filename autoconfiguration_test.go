@@ -127,6 +127,8 @@ goark:
         chain:
           content:
             enabled: true
+          fixed:
+            version: v1
         cache:
           max-age: 1h
 `)
@@ -158,6 +160,10 @@ goark:
 	versioned, err := gowebstatic.ContentVersionPath(t.Context(), os.DirFS(publicDir), "app.txt")
 	if err != nil {
 		t.Fatalf("ContentVersionPath failed: %v", err)
+	}
+	versioned, err = gowebstatic.FixedVersionPath("v1", versioned)
+	if err != nil {
+		t.Fatalf("FixedVersionPath failed: %v", err)
 	}
 	if body := requestUntilOK(t, serverURL+"/assets/"+versioned); body != "configured static" {
 		t.Fatalf("versioned static body = %q", body)

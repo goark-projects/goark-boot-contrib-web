@@ -33,7 +33,8 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.staticResources.locations[0] != "resource/static" ||
 		settings.staticResources.locations[len(settings.staticResources.locations)-1] != "resource/META-INF/resources" ||
 		settings.staticResources.pattern != DefaultStaticResourcesPattern ||
-		settings.staticResources.contentVersion != DefaultStaticResourceContentVersioningEnabled {
+		settings.staticResources.contentVersion != DefaultStaticResourceContentVersioningEnabled ||
+		settings.staticResources.fixedVersion != DefaultStaticResourceFixedVersion {
 		t.Fatalf("static resources defaults = %+v", settings.staticResources)
 	}
 	if settings.filters.cors.enabled ||
@@ -72,6 +73,7 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyStaticResourcesEnabled:                 "true",
 		PropertyStaticResourcesCacheControl:            "public, max-age=60",
 		PropertyStaticResourceContentVersioningEnabled: "true",
+		PropertyStaticResourceFixedVersion:             "v1",
 		PropertyViewTemplatesEnabled:                   "true",
 		PropertyViewTemplatesLocation:                  "classpath:/templates/",
 		PropertyViewTemplatePrefix:                     "pages",
@@ -120,7 +122,8 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		len(settings.staticResources.welcomeFiles) != 2 ||
 		settings.staticResources.welcomeFiles[1] != "home.html" ||
 		settings.staticResources.cacheControl != "public, max-age=60" ||
-		!settings.staticResources.contentVersion {
+		!settings.staticResources.contentVersion ||
+		settings.staticResources.fixedVersion != "v1" {
 		t.Fatalf("static resources settings = %+v", settings.staticResources)
 	}
 	if !settings.filters.cors.enabled ||
@@ -177,6 +180,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithStaticResourcePattern("/option-static/*"),
 		WithStaticResourceCacheMaxAge(2 * time.Minute),
 		WithStaticResourceContentVersioning(true),
+		WithStaticResourceFixedVersion("release-1"),
 		WithViewTemplatesLocation("resource/views"),
 		WithViewTemplatePrefix("admin"),
 		WithViewTemplateSuffix(".tmpl"),
@@ -209,7 +213,8 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		settings.staticResources.locations[0] != "resource/option" ||
 		settings.staticResources.pattern != "/option-static/*" ||
 		settings.staticResources.cacheControl != "public, max-age=120" ||
-		!settings.staticResources.contentVersion {
+		!settings.staticResources.contentVersion ||
+		settings.staticResources.fixedVersion != "release-1" {
 		t.Fatalf("static options did not override environment: %+v", settings.staticResources)
 	}
 	if len(settings.arkhosOptions) != 1 {
@@ -251,6 +256,7 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		propertySpringStaticCacheMaxAge:  "10m",
 		propertySpringStaticCachePeriod:  "5m",
 		propertySpringStaticContentChain: "true",
+		propertySpringStaticFixedVersion: "v2",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -263,7 +269,8 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		settings.staticResources.locations[1] != "public" ||
 		settings.staticResources.pattern != "/content/*" ||
 		settings.staticResources.cacheControl != "private, max-age=30" ||
-		!settings.staticResources.contentVersion {
+		!settings.staticResources.contentVersion ||
+		settings.staticResources.fixedVersion != "v2" {
 		t.Fatalf("spring static settings = %+v", settings.staticResources)
 	}
 }
