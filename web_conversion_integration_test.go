@@ -105,6 +105,15 @@ type starterPreferenceInput struct {
 	Tags    []string                  `form:"tags" json:"tags"`
 }
 
+type starterArrayProfile struct {
+	Aliases []string `form:"aliases" json:"aliases"`
+}
+
+type starterArrayInput struct {
+	Tags    []string             `form:"tags" json:"tags"`
+	Profile *starterArrayProfile `form:"profile" json:"profile"`
+}
+
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -164,6 +173,11 @@ type starterPreferencePayload struct {
 	Subscribed bool   `json:"subscribed"`
 	TagsNil    bool   `json:"tagsNil"`
 	TagsLength int    `json:"tagsLength"`
+}
+
+type starterArrayPayload struct {
+	Tags    []string `json:"tags"`
+	Aliases []string `json:"aliases"`
 }
 
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
@@ -506,6 +520,49 @@ func TestAutoConfigure_whenFieldPrefixesExist_shouldBindModelAttributesThroughAr
 		t.Fatalf("custom field prefix json invalid: %v", err)
 	}
 	assertStarterPreferencePayload(t, customPayload)
+}
+
+func TestAutoConfigure_whenEmptyArrayIndexFieldsExist_shouldBindModelAttributesThroughArkhos(t *testing.T) {
+	controller := mvc.NewRestController("starter-empty-array-index",
+		mvc.GET("/field-array-indices", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterArrayPayload, error) {
+			input, err := mvc.ModelAttribute[starterArrayInput](ctx)
+			if err != nil {
+				return starterArrayPayload{}, err
+			}
+			out := starterArrayPayload{Tags: input.Tags}
+			if input.Profile != nil {
+				out.Aliases = input.Profile.Aliases
+			}
+			return out, nil
+		})),
+	)
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.empty-array-index", controller),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/field-array-indices?tags[]=red&tags[]=blue&profile.aliases[]=core&profile.aliases[]=web", http.StatusOK)
+	var payload starterArrayPayload
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("empty array index json invalid: %v", err)
+	}
+	if len(payload.Tags) != 2 ||
+		payload.Tags[0] != "red" ||
+		payload.Tags[1] != "blue" ||
+		len(payload.Aliases) != 2 ||
+		payload.Aliases[0] != "core" ||
+		payload.Aliases[1] != "web" {
+		t.Fatalf("payload = %#v, want empty array index fields", payload)
+	}
 }
 
 func TestAutoConfigure_whenControllerAdviceInitBinderExists_shouldUseScopedConvertersThroughArkhos(t *testing.T) {
