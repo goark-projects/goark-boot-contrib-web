@@ -285,6 +285,58 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenMVCModelAttributeInitializerExists_shouldRenderTemplateModel(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "home.html"), "<h1>{{.AppName}}</h1>")
+	writeFile(t, filepath.Join(templateDir, "dashboard.html"), "<h1>{{.AppName}} {{.Title}}</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	controller := mvc.NewController("pages",
+		mvc.GET("/home", mvc.Return(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+			return "home", nil
+		})),
+		mvc.GET("/dashboard", mvc.Return(0, func(_ *arkweb.Context) (mvc.Model, error) {
+			return mvc.NewModel().AddAttribute("Title", "Dashboard"), nil
+		})),
+	).WithModelAttributes(
+		mvc.ModelAttributeValue("AppName", func(_ *arkweb.Context) (string, error) {
+			return "Goark", nil
+		}),
+		mvc.ModelAttributeInitializerFunc(func(_ *arkweb.Context, model mvc.Model) (mvc.Model, error) {
+			return model.AddAttribute("Title", "Default"), nil
+		}),
+	)
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.model-attribute", controller)),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	home := requestUntilStatusSnapshot(t, serverURL+"/home", http.StatusOK)
+	if home.body != "<h1>Goark</h1>" {
+		t.Fatalf("home body = %q, want initialized model", home.body)
+	}
+	dashboard := requestUntilStatusSnapshot(t, serverURL+"/dashboard", http.StatusOK)
+	if dashboard.body != "<h1>Goark Dashboard</h1>" {
+		t.Fatalf("dashboard body = %q, want merged model", dashboard.body)
+	}
+}
+
 func TestAutoConfigure_whenControllerAndRestControllerReturnValuesExist_shouldUseDefaultStrategies(t *testing.T) {
 	root := t.TempDir()
 	resource := filepath.Join(root, "resource")
