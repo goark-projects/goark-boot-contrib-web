@@ -24,6 +24,10 @@ type starterScopedTenantID struct {
 	value string
 }
 
+type starterAdviceTenantID struct {
+	value string
+}
+
 type starterConversionPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
@@ -37,6 +41,11 @@ type starterSearchCriteria struct {
 type starterScopedSearchCriteria struct {
 	Page   int                   `form:"page"`
 	Tenant starterScopedTenantID `form:"tenant"`
+}
+
+type starterAdviceSearchCriteria struct {
+	Page   int                   `form:"page"`
+	Tenant starterAdviceTenantID `form:"tenant"`
 }
 
 type starterSearchOwner struct {
@@ -71,6 +80,12 @@ type starterSearchPayload struct {
 }
 
 type starterScopedSearchPayload struct {
+	Page        int    `json:"page"`
+	Tenant      string `json:"tenant"`
+	ParamTenant string `json:"paramTenant"`
+}
+
+type starterAdviceSearchPayload struct {
 	Page        int    `json:"page"`
 	Tenant      string `json:"tenant"`
 	ParamTenant string `json:"paramTenant"`
@@ -298,6 +313,70 @@ func TestAutoConfigure_whenControllerInitBinderExists_shouldUseScopedConvertersT
 	}
 
 	requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/init-binder/plain?page=goark&tenant=blue", http.StatusBadRequest)
+}
+
+func TestAutoConfigure_whenControllerAdviceInitBinderExists_shouldUseScopedConvertersThroughArkhos(t *testing.T) {
+	advice := mvc.NewRestControllerAdvice("starter-global-binders").WithInitBinders(
+		mvc.BinderInitializerFunc(func(_ *arkweb.Context, binder *mvc.DataBinder) error {
+			return binder.AddConverter(mvc.ConverterFunc[string, starterAdviceTenantID](func(value string) (starterAdviceTenantID, error) {
+				return starterAdviceTenantID{value: "starter-advice:" + value}, nil
+			}))
+		}),
+	)
+	controller := mvc.NewRestController("starter-advice-search",
+		mvc.GET("/advice-binder", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterAdviceSearchPayload, error) {
+			criteria, err := mvc.ModelAttribute[starterAdviceSearchCriteria](ctx)
+			if err != nil {
+				return starterAdviceSearchPayload{}, err
+			}
+			tenant, err := mvc.RequestParamAs[starterAdviceTenantID](ctx, "tenant")
+			if err != nil {
+				return starterAdviceSearchPayload{}, err
+			}
+			return starterAdviceSearchPayload{
+				Page:        criteria.Page,
+				Tenant:      criteria.Tenant.value,
+				ParamTenant: tenant.value,
+			}, nil
+		})),
+	)
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+		)),
+		boot.WithConfiguration(
+			starterConversionConfiguration{},
+			mvc.NewConfiguration("test.mvc.advice-init-binder", controller).WithControllerAdvices(advice),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/advice-binder?page=goark&tenant=blue", http.StatusOK)
+	var payload starterAdviceSearchPayload
+	if err := arkjson.Unmarshal(nil, []byte(snapshot.body), &payload); err != nil {
+		t.Fatalf("advice init binder json invalid: %v", err)
+	}
+	if payload.Page != 105 ||
+		payload.Tenant != "starter-advice:blue" ||
+		payload.ParamTenant != "starter-advice:blue" {
+		t.Fatalf("advice init binder payload = %#v, want scoped conversion", payload)
+	}
+
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	service, err := goark.Get[*convert.Service](t.Context(), appContext, gbcweb.BeanNameConversionService)
+	if err != nil {
+		t.Fatalf("resolve conversion service failed: %v", err)
+	}
+	if _, err := convert.Convert[starterAdviceTenantID](service, "blue"); err == nil {
+		t.Fatal("starter conversion service should not see advice converter")
+	}
 }
 
 type starterConversionConfiguration struct{}
