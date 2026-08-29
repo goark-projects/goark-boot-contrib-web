@@ -333,6 +333,46 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenControllerResponseBodyExists_shouldBypassViewResolution(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "status.html"), "<h1>view</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.response-body",
+			mvc.NewController("status",
+				mvc.GET("/status", mvc.ResponseBody(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+					return "UP", nil
+				})),
+			),
+		)),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/status", http.StatusOK)
+	if snapshot.header.Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want text/plain", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != "UP" {
+		t.Fatalf("body = %q, want raw response body", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenMVCResponseStatusExists_shouldApplyDefaultStatus(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
