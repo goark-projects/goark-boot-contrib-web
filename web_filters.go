@@ -34,15 +34,18 @@ const (
 	propertySpringShallowETagEnabled           = "spring.web.shallow-etag.enabled"
 	propertySpringShallowETagMaxBodyBytes      = "spring.web.shallow-etag.max-body-bytes"
 	propertySpringHiddenMethodEnabled          = "spring.mvc.hiddenmethod.filter.enabled"
+	propertySpringFormContentEnabled           = "spring.mvc.formcontent.filter.enabled"
 	orderForwardedHeadersFilter                = -300
 	orderCORSFilter                            = -200
 	orderHiddenHTTPMethodFilter                = -100
+	orderFormContentFilter                     = -90
 	orderShallowETagFilter                     = 100
 )
 
 type filterSettings struct {
 	cors             corsFilterSettings
 	forwardedHeaders forwardedHeadersSettings
+	formContent      formContentSettings
 	hiddenMethod     hiddenMethodSettings
 	shallowETag      shallowETagSettings
 }
@@ -67,8 +70,15 @@ type hiddenMethodSettings struct {
 	options []gowebfilter.HiddenMethodOption
 }
 
+type formContentSettings struct {
+	enabled      bool
+	maxBodyBytes int64
+	options      []gowebfilter.FormContentOption
+}
+
 func defaultFilterSettings() filterSettings {
 	return filterSettings{
+		formContent:  formContentSettings{enabled: DefaultFormContentFilterEnabled, maxBodyBytes: DefaultFormContentMaxBodyBytes},
 		hiddenMethod: hiddenMethodSettings{enabled: DefaultHiddenHTTPMethodFilterEnabled},
 		shallowETag:  shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
 	}
@@ -134,6 +144,35 @@ func WithHiddenHTTPMethodFilterOptions(options ...gowebfilter.HiddenMethodOption
 	return func(settings *settings) error {
 		settings.filters.hiddenMethod.options = append(settings.filters.hiddenMethod.options, copied...)
 		settings.filters.hiddenMethod.enabled = true
+		return nil
+	}
+}
+
+// WithFormContentFilterEnabled 设置是否启用表单内容过滤器。
+func WithFormContentFilterEnabled(enabled bool) Option {
+	return func(settings *settings) error {
+		settings.filters.formContent.enabled = enabled
+		return nil
+	}
+}
+
+// WithFormContentMaxBodyBytes 设置表单内容过滤器最大缓存体积。
+func WithFormContentMaxBodyBytes(size int64) Option {
+	return func(settings *settings) error {
+		if size < 0 {
+			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "form content max body bytes %d must be >= 0", size)
+		}
+		settings.filters.formContent.maxBodyBytes = size
+		return nil
+	}
+}
+
+// WithFormContentFilterOptions 设置表单内容过滤器选项并启用过滤器。
+func WithFormContentFilterOptions(options ...gowebfilter.FormContentOption) Option {
+	copied := append([]gowebfilter.FormContentOption(nil), options...)
+	return func(settings *settings) error {
+		settings.filters.formContent.options = append(settings.filters.formContent.options, copied...)
+		settings.filters.formContent.enabled = true
 		return nil
 	}
 }
@@ -225,6 +264,20 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		}
 		s.filters.hiddenMethod.enabled = enabled
 	}
+	if value, ok := firstProperty(environment, PropertyFormContentFilterEnabled, propertySpringFormContentEnabled); ok {
+		enabled, err := parseBoolProperty(PropertyFormContentFilterEnabled, value)
+		if err != nil {
+			return err
+		}
+		s.filters.formContent.enabled = enabled
+	}
+	if value, ok := environment.GetProperty(PropertyFormContentMaxBodyBytes); ok {
+		size, err := parseInt64Property(PropertyFormContentMaxBodyBytes, value)
+		if err != nil {
+			return err
+		}
+		s.filters.formContent.maxBodyBytes = size
+	}
 	return nil
 }
 
@@ -247,6 +300,16 @@ func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettin
 		if err := goweb.RegisterFilter(registry, BeanNameHiddenHTTPMethodFilter, gowebfilter.HiddenHTTPMethod(
 			settings.hiddenMethod.options...,
 		), goarkcontainer.WithOrder(orderHiddenHTTPMethodFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.formContent.enabled {
+		options := append([]gowebfilter.FormContentOption{
+			gowebfilter.WithFormContentMaxBodyBytes(settings.formContent.maxBodyBytes),
+		}, settings.formContent.options...)
+		if err := goweb.RegisterFilter(registry, BeanNameFormContentFilter, gowebfilter.FormContent(
+			options...,
+		), goarkcontainer.WithOrder(orderFormContentFilter)); err != nil {
 			return err
 		}
 	}

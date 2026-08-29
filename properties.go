@@ -17,6 +17,8 @@ const (
 	BeanNameShallowETagFilter = "goark.boot.web.shallowETagFilter"
 	// BeanNameHiddenHTTPMethodFilter 是默认隐藏 HTTP 方法过滤器 Bean 名称。
 	BeanNameHiddenHTTPMethodFilter = "goark.boot.web.hiddenHTTPMethodFilter"
+	// BeanNameFormContentFilter 是默认表单内容过滤器 Bean 名称。
+	BeanNameFormContentFilter = "goark.boot.web.formContentFilter"
 	// BeanNameProblemDetailsMapper 是默认 Problem Details 错误映射器 Bean 名称。
 	BeanNameProblemDetailsMapper = "goark.boot.web.problemDetailsMapper"
 	// BeanNameErrorEndpoint 是默认错误端点配置器 Bean 名称。
@@ -70,6 +72,10 @@ const (
 	DefaultShallowETagMaxBodyBytes int64 = 1 << 20
 	// DefaultHiddenHTTPMethodFilterEnabled 表示默认关闭隐藏 HTTP 方法过滤器。
 	DefaultHiddenHTTPMethodFilterEnabled = false
+	// DefaultFormContentFilterEnabled 表示默认启用表单内容过滤器。
+	DefaultFormContentFilterEnabled = true
+	// DefaultFormContentMaxBodyBytes 是表单内容过滤器默认最大缓存体积。
+	DefaultFormContentMaxBodyBytes int64 = 1 << 20
 	// DefaultErrorPath 是默认 Boot 风格错误端点路径。
 	DefaultErrorPath = "/error"
 	// DefaultViewTemplatesEnabled 表示默认启用模板视图约定。
@@ -139,6 +145,10 @@ const (
 	PropertyShallowETagMaxBodyBytes = "goark.web.filters.shallow-etag.max-body-bytes"
 	// PropertyHiddenHTTPMethodFilterEnabled 设置是否启用隐藏 HTTP 方法过滤器。
 	PropertyHiddenHTTPMethodFilterEnabled = "goark.web.filters.hidden-method.enabled"
+	// PropertyFormContentFilterEnabled 设置是否启用表单内容过滤器。
+	PropertyFormContentFilterEnabled = "goark.web.filters.form-content.enabled"
+	// PropertyFormContentMaxBodyBytes 设置表单内容过滤器最大缓存体积。
+	PropertyFormContentMaxBodyBytes = "goark.web.filters.form-content.max-body-bytes"
 	// PropertyErrorEndpointEnabled 设置是否注册默认错误端点。
 	PropertyErrorEndpointEnabled = "goark.web.error.enabled"
 	// PropertyErrorPath 设置默认错误端点路径。

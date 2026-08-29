@@ -740,6 +740,46 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenFormContentFilterEnabled_shouldBindDeleteFormParameters(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+    filters:
+      form-content:
+        enabled: true
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.form-content", mvc.NewRestController("items",
+			mvc.DELETE("/items/1", mvc.Return(http.StatusOK, func(ctx *arkweb.Context) (string, error) {
+				return mvc.RequestParamString(ctx, "name")
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodDelete, starterServerURL(t, app)+"/items/1", strings.NewReader("name=goark"))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return request, nil
+	}, http.StatusOK)
+	if snapshot.body != "goark" {
+		t.Fatalf("body = %q, want form parameter", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenRegisteredTwice_shouldBackOffExistingConfigurations(t *testing.T) {
 	app, err := boot.Run(
 		t.Context(),

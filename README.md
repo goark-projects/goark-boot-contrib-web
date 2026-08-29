@@ -23,6 +23,7 @@ Official Goark Boot starter module for web applications.
 - Path-scoped Web interceptors and Servlet filters for Spring MVC style include/exclude request chains.
 - MVC `Controller` and `RestController` default return value semantics: views for normal controllers, response bodies for REST controllers.
 - Optional hidden HTTP method filter for HTML form method override.
+- Default form content filter for PUT, PATCH, and DELETE URL-encoded request parameters.
 - WebSocket Endpoint registration backed by Arkarta Servlet Upgrade and the default Arkhos embedded container.
 - Goark MVC request mapping conditions, including consumes/produces negotiation for JSON-compatible vendor media types.
 - Default outbound `goark.dev/goark/web/client` Builder and Client beans for Spring-style JSON, form, and multipart web client usage.
@@ -59,6 +60,7 @@ Routes can call `goark.dev/goark/web.CheckNotModified` before building an expens
 Handlers can return `goark.dev/goark/web.NewStatusError` to produce Spring-style status errors through the default Problem Details mapper.
 Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, cookies, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
 The hidden HTTP method filter is off by default; when enabled it accepts POST form `_method` overrides for PUT, PATCH, and DELETE.
+The form content filter is on by default; it exposes PUT, PATCH, and DELETE `application/x-www-form-urlencoded` bodies to MVC `RequestParam` and `ModelAttribute` binding while preserving the request body for later readers.
 Applications that need bidirectional WebSocket endpoints can register them with `gbcweb.RegisterWebSocketEndpoint`; the starter contributes the endpoint as a Goark Web configurer and the default Arkhos deployment handles the Servlet upgrade.
 
 ## Configuration Properties
@@ -84,6 +86,8 @@ Applications that need bidirectional WebSocket endpoints can register them with 
 | `goark.web.mvc.view.suffix` | `.html` | Suffix added to logical view names. |
 | `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | Default template response content type. |
 | `goark.web.filters.hidden-method.enabled` | `false` | Enable POST form `_method` overrides for PUT, PATCH, and DELETE. |
+| `goark.web.filters.form-content.enabled` | `true` | Enable PUT, PATCH, and DELETE URL-encoded form body parameters. |
+| `goark.web.filters.form-content.max-body-bytes` | `1048576` | Maximum request body cached by the form content filter. |
 | `goark.web.client.enabled` | `true` | Register the default outbound Web HTTP client builder and client beans. |
 | `goark.web.client.base-url` | unset | Optional base URL used by relative outbound HTTP requests. |
 | `goark.web.client.timeout` | `30s` | Default outbound HTTP request timeout. |
@@ -104,6 +108,7 @@ Spring-compatible aliases are recognized for static resources:
 | `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
 | `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
 | `spring.mvc.hiddenmethod.filter.enabled` | `goark.web.filters.hidden-method.enabled` |
+| `spring.mvc.formcontent.filter.enabled` | `goark.web.filters.form-content.enabled` |
 
 Server, multipart, and Servlet async timeout properties are provided by `goark.dev/gbc-arkhos`, which this starter includes by default.
 
@@ -140,6 +145,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 支持带路径作用域的 Web 拦截器和 Servlet 过滤器，对齐 Spring MVC 风格 include/exclude 请求链。
 - 支持 MVC `Controller` 和 `RestController` 默认返回值语义：普通控制器默认视图，REST 控制器默认响应体。
 - 支持可选隐藏 HTTP 方法过滤器，用于 HTML 表单方法覆盖。
+- 默认启用表单内容过滤器，让 PUT、PATCH 和 DELETE 的 URL 编码请求体可参与参数绑定。
 - 支持基于 Arkarta Servlet Upgrade 和默认 Arkhos 嵌入式容器的 WebSocket Endpoint 注册。
 - 支持 Goark MVC 请求映射条件，包括 consumes/produces 以及 JSON 兼容厂商媒体类型协商。
 - 提供默认出站 `goark.dev/goark/web/client` Builder 与 Client Bean，对齐 Spring 风格 JSON、表单和 multipart Web 客户端用法。
@@ -155,6 +161,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 处理器可以返回 `goark.dev/goark/web.NewStatusError`，由默认 Problem Details 映射器输出对齐 Spring 风格的状态错误。
 业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、Cookie、拦截器、编解码器或底层传输。
 隐藏 HTTP 方法过滤器默认关闭；启用后接受 POST 表单 `_method` 覆盖 PUT、PATCH 和 DELETE。
+表单内容过滤器默认启用；它会把 PUT、PATCH 和 DELETE 的 `application/x-www-form-urlencoded` 请求体暴露给 MVC `RequestParam` 和 `ModelAttribute` 绑定，并保留请求体供后续读取。
 需要双向通信的业务可以通过 `gbcweb.RegisterWebSocketEndpoint` 注册 WebSocket 端点；本启动器会将端点贡献为 Goark Web 配置器，并由默认 Arkhos 部署处理 Servlet Upgrade。
 
 ## 配置属性
@@ -180,6 +187,8 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 | `goark.web.mvc.view.suffix` | `.html` | 逻辑视图名后缀。 |
 | `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | 模板响应默认媒体类型。 |
 | `goark.web.filters.hidden-method.enabled` | `false` | 是否启用 POST 表单 `_method` 覆盖，默认允许 PUT、PATCH 和 DELETE。 |
+| `goark.web.filters.form-content.enabled` | `true` | 是否启用 PUT、PATCH 和 DELETE 的 URL 编码表单体参数绑定。 |
+| `goark.web.filters.form-content.max-body-bytes` | `1048576` | 表单内容过滤器最大缓存请求体字节数。 |
 | `goark.web.client.enabled` | `true` | 是否注册默认出站 Web HTTP 客户端 Builder 与 Client Bean。 |
 | `goark.web.client.base-url` | 未设置 | 相对出站 HTTP 请求使用的可选基础 URL。 |
 | `goark.web.client.timeout` | `30s` | 默认出站 HTTP 请求超时。 |
@@ -200,6 +209,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 | `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
 | `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
 | `spring.mvc.hiddenmethod.filter.enabled` | `goark.web.filters.hidden-method.enabled` |
+| `spring.mvc.formcontent.filter.enabled` | `goark.web.filters.form-content.enabled` |
 
 服务端监听、multipart 和 Servlet async 超时属性由默认包含的 `goark.dev/gbc-arkhos` 提供。
 

@@ -2,6 +2,7 @@ package gbcweb
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -43,6 +44,9 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.hiddenMethod.enabled ||
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
+	}
+	if !settings.filters.formContent.enabled || settings.filters.formContent.maxBodyBytes != DefaultFormContentMaxBodyBytes {
+		t.Fatalf("form content defaults = %+v", settings.filters.formContent)
 	}
 	if !settings.viewTemplates.enabled ||
 		settings.viewTemplates.location != DefaultViewTemplatesLocation ||
@@ -92,6 +96,8 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyShallowETagEnabled:                     "true",
 		PropertyShallowETagMaxBodyBytes:                "4096",
 		PropertyHiddenHTTPMethodFilterEnabled:          "true",
+		PropertyFormContentFilterEnabled:               "true",
+		PropertyFormContentMaxBodyBytes:                "2048",
 		PropertyErrorEndpointEnabled:                   "true",
 		PropertyErrorPath:                              "/failure",
 		PropertyProblemDetailsEnabled:                  "true",
@@ -154,6 +160,9 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.hiddenMethod.enabled {
 		t.Fatalf("hidden method settings = %+v", settings.filters.hiddenMethod)
 	}
+	if !settings.filters.formContent.enabled || settings.filters.formContent.maxBodyBytes != 2048 {
+		t.Fatalf("form content settings = %+v", settings.filters.formContent)
+	}
 	if !settings.errorHandling.enabled ||
 		!settings.errorHandling.problemDetailsEnabled ||
 		settings.errorHandling.path != "/failure" {
@@ -176,6 +185,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		PropertyServletMapping:           "/env/*",
 		PropertyStaticResourcesLocations: "resource/env",
 		PropertyStaticResourcesPattern:   "/env-static/*",
+		PropertyFormContentFilterEnabled: "false",
 	})
 
 	settings, err := newSettings(environment, []Option{
@@ -197,6 +207,9 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithShallowETagMaxBodyBytes(512),
 		WithHiddenHTTPMethodFilterEnabled(true),
 		WithHiddenHTTPMethodFilterOptions(gowebfilter.WithHiddenMethodParameter("http_method")),
+		WithFormContentFilterEnabled(true),
+		WithFormContentMaxBodyBytes(1024),
+		WithFormContentFilterOptions(gowebfilter.WithFormContentMethods(http.MethodDelete)),
 		WithErrorEndpointEnabled(true),
 		WithErrorPath("/option-error"),
 		WithProblemDetailsEnabled(true),
@@ -239,6 +252,9 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		!settings.filters.forwardedHeaders.enabled ||
 		!settings.filters.hiddenMethod.enabled ||
 		len(settings.filters.hiddenMethod.options) != 1 ||
+		!settings.filters.formContent.enabled ||
+		settings.filters.formContent.maxBodyBytes != 1024 ||
+		len(settings.filters.formContent.options) != 1 ||
 		!settings.filters.shallowETag.enabled ||
 		settings.filters.shallowETag.maxBodyBytes != 512 {
 		t.Fatalf("filter options did not override environment: %+v", settings.filters)
@@ -285,6 +301,21 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 	}
 }
 
+func TestNewSettings_whenSpringFormContentPropertyExists_shouldApplyCompatibleProperty(t *testing.T) {
+	environment := newTestEnvironment(t, map[string]any{
+		propertySpringFormContentEnabled: "false",
+	})
+
+	settings, err := newSettings(environment, nil)
+	if err != nil {
+		t.Fatalf("new settings failed: %v", err)
+	}
+
+	if settings.filters.formContent.enabled {
+		t.Fatalf("spring form content settings = %+v", settings.filters.formContent)
+	}
+}
+
 func TestNewSettings_whenSpringHiddenMethodPropertyExists_shouldApplyCompatibleProperty(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
 		propertySpringHiddenMethodEnabled: "true",
@@ -326,6 +357,12 @@ func TestNewSettings_whenHTTPClientPropertiesAreInvalid_shouldReturnError(t *tes
 			name: "max response bytes",
 			values: map[string]any{
 				PropertyHTTPClientMaxResponseBytes: "-2",
+			},
+		},
+		{
+			name: "form content max body bytes",
+			values: map[string]any{
+				PropertyFormContentMaxBodyBytes: "-1",
 			},
 		},
 		{
