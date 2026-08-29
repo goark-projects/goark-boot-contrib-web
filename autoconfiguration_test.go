@@ -242,6 +242,11 @@ func TestAutoConfigure_whenHTTPClientConfigured_shouldRegisterBuilderAndClient(t
 		}
 		switch request.URL.Path {
 		case "/api/ping":
+			session, err := request.Cookie("sid")
+			if err != nil || session.Value != "abc" {
+				failHTTPServer(serverErrors, writer, "sid cookie = %#v err %v", session, err)
+				return
+			}
 			_, _ = io.WriteString(writer, `{"status":"UP"}`)
 		case "/api/builder":
 			if request.Header.Get("X-Builder") != "yes" {
@@ -300,7 +305,7 @@ func TestAutoConfigure_whenHTTPClientConfigured_shouldRegisterBuilderAndClient(t
 	if err != nil {
 		t.Fatalf("resolve http client failed: %v", err)
 	}
-	response, err := defaultClient.Get(t.Context(), "/ping")
+	response, err := defaultClient.Get(t.Context(), "/ping", webclient.WithCookieValue("sid", "abc"))
 	if err != nil {
 		t.Fatalf("default client get failed: %v", err)
 	}
@@ -354,6 +359,16 @@ func TestAutoConfigure_whenHTTPClientBuilderCustomizersExist_shouldApplyInOrder(
 		values := request.Header.Values("X-Chain")
 		if len(values) != 2 || values[0] != "first" || values[1] != "second" {
 			failHTTPServer(serverErrors, writer, "X-Chain = %#v, want first then second", values)
+			return
+		}
+		phase, err := request.Cookie("phase")
+		if err != nil || phase.Value != "first" {
+			failHTTPServer(serverErrors, writer, "phase cookie = %#v err %v", phase, err)
+			return
+		}
+		mode, err := request.Cookie("mode")
+		if err != nil || mode.Value != "second" {
+			failHTTPServer(serverErrors, writer, "mode cookie = %#v err %v", mode, err)
 			return
 		}
 		_, _ = io.WriteString(writer, "customized")
@@ -697,7 +712,7 @@ func (starterHTTPClientCustomizerConfiguration) RegisterWithContext(_ context.Co
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		return builder.DefaultHeader("X-Chain", "first"), nil
+		return builder.DefaultHeader("X-Chain", "first").DefaultCookieValue("phase", "first"), nil
 	}), container.WithOrder(-100)); err != nil {
 		return err
 	}
@@ -705,7 +720,7 @@ func (starterHTTPClientCustomizerConfiguration) RegisterWithContext(_ context.Co
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		return builder.DefaultHeader("X-Chain", "second"), nil
+		return builder.DefaultHeader("X-Chain", "second").DefaultCookieValue("mode", "second"), nil
 	}), container.WithOrder(100))
 }
 

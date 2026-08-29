@@ -48,8 +48,8 @@ func main() {
 
 Business packages contribute MVC controllers, response advice, error mappers, or other `goark.dev/goark/web.Configurer` beans.
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
-MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, `SSE`, or `Redirect`; the response status, headers, JSON body, negotiated `produces` media type, redirect location, and streaming headers are preserved by the generated route and starter deployment.
-Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
+MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, `SSE`, or `Redirect`; the response status, headers, cookies, cache headers, JSON body, negotiated `produces` media type, redirect location, and streaming headers are preserved by the generated route and starter deployment.
+Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, cookies, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
 
 ## Configuration Properties
 
@@ -128,8 +128,8 @@ Goark 官方维护的 Web 应用启动器模块。
 
 业务包只需要贡献 MVC 控制器、响应增强器、错误映射器或其他 `goark.dev/goark/web.Configurer` Bean。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
-MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream`、`SSE` 或 `Redirect`；生成路由和本启动器部署链路会保留响应状态码、响应头、JSON 响应体、协商后的 `produces` 媒体类型、重定向 Location 和流式响应头。
-业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、拦截器、编解码器或底层传输。
+MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream`、`SSE` 或 `Redirect`；生成路由和本启动器部署链路会保留响应状态码、响应头、Cookie、缓存头、JSON 响应体、协商后的 `produces` 媒体类型、重定向 Location 和流式响应头。
+业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、Cookie、拦截器、编解码器或底层传输。
 
 ## 配置属性
 
