@@ -249,6 +249,28 @@ func TestAutoConfigure_whenHTTPClientConfigured_shouldRegisterBuilderAndClient(t
 				return
 			}
 			_, _ = io.WriteString(writer, "builder")
+		case "/api/upload":
+			if err := request.ParseMultipartForm(1 << 20); err != nil {
+				failHTTPServer(serverErrors, writer, "parse multipart failed: %v", err)
+				return
+			}
+			file, header, err := request.FormFile("file")
+			if err != nil {
+				failHTTPServer(serverErrors, writer, "form file failed: %v", err)
+				return
+			}
+			defer file.Close()
+			body, err := io.ReadAll(file)
+			if err != nil {
+				failHTTPServer(serverErrors, writer, "read file failed: %v", err)
+				return
+			}
+			if request.FormValue("title") != "avatar" || header.Filename != "profile.txt" || string(body) != "hello" {
+				failHTTPServer(serverErrors, writer, "multipart = %q %q %q", request.FormValue("title"), header.Filename, string(body))
+				return
+			}
+			writer.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(writer, "uploaded")
 		default:
 			failHTTPServer(serverErrors, writer, "path = %q", request.URL.Path)
 		}
@@ -304,6 +326,20 @@ func TestAutoConfigure_whenHTTPClientConfigured_shouldRegisterBuilderAndClient(t
 	}
 	if derivedResponse.BodyString() != "builder" {
 		t.Fatalf("derived body = %q, want builder", derivedResponse.BodyString())
+	}
+	uploadResponse, err := defaultClient.Post(t.Context(), "/upload",
+		webclient.WithMultipartFields(map[string]string{"title": "avatar"}, webclient.MultipartFile{
+			FieldName:   "file",
+			FileName:    "profile.txt",
+			ContentType: "text/plain",
+			Body:        strings.NewReader("hello"),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("multipart client post failed: %v", err)
+	}
+	if uploadResponse.StatusCode() != http.StatusCreated || uploadResponse.BodyString() != "uploaded" {
+		t.Fatalf("upload response = %d %q, want 201 uploaded", uploadResponse.StatusCode(), uploadResponse.BodyString())
 	}
 	assertNoHTTPServerError(t, serverErrors)
 }

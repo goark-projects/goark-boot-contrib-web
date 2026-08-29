@@ -3,7 +3,7 @@ module goark.dev/gbc-web
 go 1.25
 
 require (
-	goark.dev/arkarta v0.0.2-0.20260828100605-90e141870d91
+	goark.dev/arkarta v0.0.2-0.20260829011620-1c7ad55d7f26
 	goark.dev/boot v0.0.0
 	goark.dev/gbc-arkhos v0.0.0
 	goark.dev/goark v0.0.0

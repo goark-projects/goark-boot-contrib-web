@@ -35,6 +35,8 @@ type starterEventPayload struct {
 }
 
 func TestAutoConfigure_whenWebFeatureContributorsExist_shouldServeThroughArkhos(t *testing.T) {
+	const contractMediaType = "application/vnd.goark.contract+json"
+
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
 goark:
@@ -81,6 +83,9 @@ goark:
 						})
 					}), nil
 				})),
+				mvc.GET("/contracts", mvc.JSON(http.StatusOK, func(*arkweb.Context) (starterEventPayload, error) {
+					return starterEventPayload{State: "NEGOTIATED"}, nil
+				}), mvc.WithProduces(contractMediaType)),
 			)),
 		),
 	)
@@ -144,6 +149,21 @@ goark:
 		if !strings.Contains(eventSnapshot.body, fragment) {
 			t.Fatalf("event body missing %q:\n%s", fragment, eventSnapshot.body)
 		}
+	}
+
+	contractSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/contracts", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", contractMediaType)
+		return request, nil
+	}, http.StatusOK)
+	if got := contractSnapshot.header.Get("Content-Type"); got != contractMediaType {
+		t.Fatalf("contract Content-Type = %q, want %s", got, contractMediaType)
+	}
+	if contractSnapshot.body != `{"state":"NEGOTIATED"}` {
+		t.Fatalf("contract body = %q, want negotiated JSON", contractSnapshot.body)
 	}
 }
 

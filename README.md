@@ -19,7 +19,8 @@ Official Goark Boot starter module for web applications.
 - Arkhos as the default embedded web container through `goark.dev/gbc-arkhos`.
 - Auto-application of `goark.dev/goark/web.Configurer` beans, including MVC routes, response advice, and error mappers supplied by application code.
 - Goark Web result conventions such as `ResponseEntity[T]`, file download, streaming responses, and Server-Sent Events.
-- Default outbound `goark.dev/goark/web/client` Builder and Client beans for Spring-style web client usage.
+- Goark MVC request mapping conditions, including consumes/produces negotiation for JSON-compatible vendor media types.
+- Default outbound `goark.dev/goark/web/client` Builder and Client beans for Spring-style JSON, form, and multipart web client usage.
 - Ordered `HTTPClientBuilderCustomizer` extension points for application and starter-level outbound client defaults.
 
 ## Usage
@@ -47,7 +48,7 @@ func main() {
 
 Business packages contribute MVC controllers, response advice, error mappers, or other `goark.dev/goark/web.Configurer` beans.
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
-MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, or `SSE`; the response status, headers, JSON body, and streaming headers are preserved by the generated route and starter deployment.
+MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, `SSE`, or `Redirect`; the response status, headers, JSON body, negotiated `produces` media type, redirect location, and streaming headers are preserved by the generated route and starter deployment.
 Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
 
 ## Configuration Properties
@@ -119,14 +120,15 @@ Goark 官方维护的 Web 应用启动器模块。
 - 默认通过 `goark.dev/gbc-arkhos` 接入 Arkhos 嵌入式 Web 容器。
 - 自动应用业务贡献的 `goark.dev/goark/web.Configurer` Bean，包括 MVC 路由、响应增强器和错误映射器。
 - 支持 Goark Web 的 `ResponseEntity[T]`、文件下载、流式响应和 Server-Sent Events 结果约定。
-- 提供默认出站 `goark.dev/goark/web/client` Builder 与 Client Bean，对齐 Spring 风格 Web 客户端用法。
+- 支持 Goark MVC 请求映射条件，包括 consumes/produces 以及 JSON 兼容厂商媒体类型协商。
+- 提供默认出站 `goark.dev/goark/web/client` Builder 与 Client Bean，对齐 Spring 风格 JSON、表单和 multipart Web 客户端用法。
 - 提供有序 `HTTPClientBuilderCustomizer` 扩展点，支持业务和其他 starter 定制出站客户端默认行为。
 
 ## 使用方式
 
 业务包只需要贡献 MVC 控制器、响应增强器、错误映射器或其他 `goark.dev/goark/web.Configurer` Bean。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
-MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream` 或 `SSE`；生成路由和本启动器部署链路会保留响应状态码、响应头、JSON 响应体和流式响应头。
+MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream`、`SSE` 或 `Redirect`；生成路由和本启动器部署链路会保留响应状态码、响应头、JSON 响应体、协商后的 `produces` 媒体类型、重定向 Location 和流式响应头。
 业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、拦截器、编解码器或底层传输。
 
 ## 配置属性
