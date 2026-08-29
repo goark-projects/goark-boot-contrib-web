@@ -30,9 +30,25 @@ type starterSearchCriteria struct {
 	Tenant starterTenantID `form:"tenant"`
 }
 
+type starterSearchOwner struct {
+	Name  string `form:"name"`
+	Level int    `form:"level"`
+}
+
+type starterNestedSearchCriteria struct {
+	Owner *starterSearchOwner `form:"owner"`
+	Page  int                 `form:"page"`
+}
+
 type starterSearchPayload struct {
 	Page   int    `json:"page"`
 	Tenant string `json:"tenant"`
+}
+
+type starterNestedSearchPayload struct {
+	OwnerName  string `json:"ownerName"`
+	OwnerLevel int    `json:"ownerLevel"`
+	Page       int    `json:"page"`
 }
 
 func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *testing.T) {
@@ -68,6 +84,17 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 						Tenant: criteria.Tenant.value,
 					}, nil
 				})),
+				mvc.GET("/search/nested", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterNestedSearchPayload, error) {
+					criteria, err := mvc.ModelAttribute[starterNestedSearchCriteria](ctx)
+					if err != nil {
+						return starterNestedSearchPayload{}, err
+					}
+					return starterNestedSearchPayload{
+						OwnerName:  criteria.Owner.Name,
+						OwnerLevel: criteria.Owner.Level,
+						Page:       criteria.Page,
+					}, nil
+				})),
 			)),
 		),
 	)
@@ -92,6 +119,15 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 	}
 	if searchPayload.Page != 105 || searchPayload.Tenant != "tenant:green" {
 		t.Fatalf("search payload = %#v, want converted model attribute", searchPayload)
+	}
+
+	nestedSnapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/search/nested?owner.name=ada&owner.level=admin&page=xy", http.StatusOK)
+	var nestedPayload starterNestedSearchPayload
+	if err := arkjson.Unmarshal(nil, []byte(nestedSnapshot.body), &nestedPayload); err != nil {
+		t.Fatalf("nested search json invalid: %v", err)
+	}
+	if nestedPayload.OwnerName != "ada" || nestedPayload.OwnerLevel != 105 || nestedPayload.Page != 102 {
+		t.Fatalf("nested search payload = %#v, want nested model attribute", nestedPayload)
 	}
 }
 
