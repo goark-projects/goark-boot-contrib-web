@@ -374,6 +374,53 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenControllerAdviceModelAttributeInitializerExists_shouldRenderTemplateModel(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "dashboard.html"), "<h1>{{.AppName}} {{.Title}}</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	advice := mvc.NewControllerAdvice("test.mvc.global-model").WithModelAttributes(
+		mvc.ModelAttributeValue("AppName", func(_ *arkweb.Context) (string, error) {
+			return "Goark", nil
+		}),
+		mvc.ModelAttributeInitializerFunc(func(_ *arkweb.Context, model mvc.Model) (mvc.Model, error) {
+			return model.AddAttribute("Title", "Default"), nil
+		}),
+	)
+	controller := mvc.NewController("pages",
+		mvc.GET("/dashboard", mvc.Return(0, func(_ *arkweb.Context) (mvc.ModelAndView, error) {
+			return mvc.NewModelAndView("dashboard", mvc.NewModel().AddAttribute("Title", "Dashboard")), nil
+		})),
+	)
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.advice-model-attribute", controller).WithControllerAdvices(advice)),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/dashboard", http.StatusOK)
+	if snapshot.header.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want html", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != "<h1>Goark Dashboard</h1>" {
+		t.Fatalf("dashboard body = %q, want advice initialized model", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenControllerAndRestControllerReturnValuesExist_shouldUseDefaultStrategies(t *testing.T) {
 	root := t.TempDir()
 	resource := filepath.Join(root, "resource")
