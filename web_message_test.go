@@ -12,6 +12,8 @@ import (
 
 type testMessageConverter struct{}
 
+type testRequestBodyAdvice struct{}
+
 func (testMessageConverter) MediaTypes() []string {
 	return []string{"application/vnd.goark.test"}
 }
@@ -32,10 +34,21 @@ func (testMessageConverter) Write(*arkweb.Context, any, string) error {
 	return nil
 }
 
+func (testRequestBodyAdvice) BeforeRead(*arkweb.Context, message.ReadAdviceContext) error {
+	return nil
+}
+
+func (testRequestBodyAdvice) AfterRead(*arkweb.Context, message.ReadAdviceContext) error {
+	return nil
+}
+
 func TestRegisterMessageIO_whenConvertersExist_shouldAssembleReaderWriter(t *testing.T) {
 	registry := goarkcontainer.NewRegistry()
 	if err := RegisterMessageConverter(registry, "testMessageConverter", testMessageConverter{}, goarkcontainer.WithOrder(-100)); err != nil {
 		t.Fatalf("RegisterMessageConverter failed: %v", err)
+	}
+	if err := RegisterRequestBodyAdvice(registry, "testRequestBodyAdvice", testRequestBodyAdvice{}, goarkcontainer.WithOrder(-50)); err != nil {
+		t.Fatalf("RegisterRequestBodyAdvice failed: %v", err)
 	}
 	if err := registerMessageIO(registry); err != nil {
 		t.Fatalf("registerMessageIO failed: %v", err)
@@ -59,6 +72,9 @@ func TestRegisterMessageIO_whenConvertersExist_shouldAssembleReaderWriter(t *tes
 	}
 	if _, ok := reader.ReadConverters()[0].(testMessageConverter); !ok {
 		t.Fatalf("first reader converter = %T, want testMessageConverter", reader.ReadConverters()[0])
+	}
+	if _, ok := reader.ReadAdvices()[0].(testRequestBodyAdvice); !ok {
+		t.Fatalf("first reader advice = %T, want testRequestBodyAdvice", reader.ReadAdvices()[0])
 	}
 
 	configurer, err := goarkcontainer.Get[goweb.Configurer](context.Background(), runtimeContainer, BeanNameMessageIOConfigurer)

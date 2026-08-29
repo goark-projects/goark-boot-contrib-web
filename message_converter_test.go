@@ -31,6 +31,10 @@ type starterTokenOutput struct {
 	Value string
 }
 
+type starterAdvisedInput struct {
+	Name string `json:"name"`
+}
+
 type starterTokenConverter struct{}
 
 func (starterTokenConverter) MediaTypes() []string {
@@ -122,6 +126,48 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenRequestBodyAdviceBeanExists_shouldApplyToMVCBindJSON(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root+"/app.yml", `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")))),
+		boot.WithConfiguration(
+			starterRequestBodyAdviceConfiguration{},
+			mvc.NewConfiguration("test.web.request-body-advice.mvc", mvc.NewRestController("users",
+				mvc.POST("/users", mvc.BindJSON(http.StatusCreated, func(_ *arkweb.Context, input starterAdvisedInput) (map[string]string, error) {
+					return map[string]string{"name": input.Name}, nil
+				})),
+			)),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, starterServerURL(t, app)+"/users", strings.NewReader(`{"name":"goark"}`))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", message.MediaTypeJSON)
+		request.Header.Set("Accept", message.MediaTypeJSON)
+		return request, nil
+	}, http.StatusCreated)
+
+	if snapshot.body != `{"name":"goark-advised"}` {
+		t.Fatalf("body = %q, want advised JSON body", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenFormBodyExists_shouldUseDefaultMessageConverters(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
@@ -181,6 +227,32 @@ func (c starterMessageConverterConfiguration) Register(ctx context.Context, regi
 
 func (starterMessageConverterConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
 	return gbcweb.RegisterMessageConverter(config.Registry(), "testStarterTokenMessageConverter", starterTokenConverter{}, container.WithOrder(-100))
+}
+
+type starterRequestBodyAdviceConfiguration struct{}
+
+func (starterRequestBodyAdviceConfiguration) Name() string {
+	return "test.web.request-body-advice"
+}
+
+func (starterRequestBodyAdviceConfiguration) Order() int {
+	return 0
+}
+
+func (c starterRequestBodyAdviceConfiguration) Register(ctx context.Context, registry *container.Registry) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+func (starterRequestBodyAdviceConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
+	return gbcweb.RegisterRequestBodyAdvice(config.Registry(), "testStarterRequestBodyAdvice", message.ReadAdviceFunc{
+		After: func(_ *arkweb.Context, input message.ReadAdviceContext) error {
+			target, ok := input.Target.(*starterAdvisedInput)
+			if ok {
+				target.Name += "-advised"
+			}
+			return nil
+		},
+	}, container.WithOrder(-100))
 }
 
 var _ goweb.MessageConverter = starterTokenConverter{}

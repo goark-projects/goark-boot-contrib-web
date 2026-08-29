@@ -25,6 +25,11 @@ func RegisterMessageWriteConverter(registry *goarkcontainer.Registry, name strin
 	return goarkcontainer.RegisterInstance[message.Converter](registry, name, converter, options...)
 }
 
+// RegisterRequestBodyAdvice 注册请求体读取增强器 Bean。
+func RegisterRequestBodyAdvice(registry *goarkcontainer.Registry, name string, advice message.ReadAdvice, options ...goarkcontainer.Option) error {
+	return goarkcontainer.RegisterInstance[message.ReadAdvice](registry, name, advice, options...)
+}
+
 func registerMessageIO(registry *goarkcontainer.Registry) error {
 	if _, exists := registry.Definition(BeanNameMessageWriter); !exists {
 		if err := goarkcontainer.Register[message.Writer](registry, BeanNameMessageWriter, newMessageWriter); err != nil {
@@ -60,7 +65,14 @@ func newMessageReader(ctx context.Context, resolver goarkcontainer.Resolver) (me
 	if err != nil {
 		return message.Reader{}, err
 	}
-	return message.NewReader(message.WithPrependedReadConverters(converters...)), nil
+	advice, err := goarkcontainer.GetAllByType[message.ReadAdvice](ctx, resolver)
+	if err != nil {
+		return message.Reader{}, err
+	}
+	return message.NewReader(
+		message.WithPrependedReadConverters(converters...),
+		message.WithReadAdvice(advice...),
+	), nil
 }
 
 func newMessageIOConfigurer(ctx context.Context, resolver goarkcontainer.Resolver) (goweb.Configurer, error) {
