@@ -293,7 +293,11 @@ func starterServerURL(t *testing.T, app *boot.Application) string {
 
 func requestUntilStatusWith(t *testing.T, build func() (*http.Request, error), statusCode int) responseSnapshot {
 	t.Helper()
-	client := http.Client{Timeout: time.Second}
+	return requestUntilStatusWithClient(t, http.Client{Timeout: time.Second}, build, statusCode)
+}
+
+func requestUntilStatusWithClient(t *testing.T, client http.Client, build func() (*http.Request, error), statusCode int) responseSnapshot {
+	t.Helper()
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		request, err := build()

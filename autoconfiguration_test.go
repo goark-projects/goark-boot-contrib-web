@@ -390,6 +390,47 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenControllerReturnsRedirectViewName_shouldWriteRedirect(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.redirect", mvc.NewController("redirects",
+			mvc.GET("/accounts", mvc.Return(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+				return "redirect:/signin", nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	snapshot := requestUntilStatusWithClient(t, http.Client{
+		Timeout: time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}, func() (*http.Request, error) {
+		return http.NewRequestWithContext(t.Context(), http.MethodGet, serverURL+"/accounts", nil)
+	}, http.StatusFound)
+	if got := snapshot.header.Get("Location"); got != "/signin" {
+		t.Fatalf("Location = %q, want /signin", got)
+	}
+	if snapshot.body != "" {
+		t.Fatalf("body = %q, want empty", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenControllerResponseBodyExists_shouldBypassViewResolution(t *testing.T) {
 	root := t.TempDir()
 	resource := filepath.Join(root, "resource")
