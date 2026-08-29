@@ -455,6 +455,96 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenControllerAdviceValueExists_shouldRenderTemplate(t *testing.T) {
+	root := t.TempDir()
+	resource := filepath.Join(root, "resource")
+	templateDir := filepath.Join(resource, "templates")
+	mkdir(t, templateDir)
+	writeFile(t, filepath.Join(resource, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+	writeFile(t, filepath.Join(templateDir, "missing.html"), "<h1>missing</h1>")
+	t.Chdir(root)
+	clearConfigDataEnvironment(t)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.advice-view", mvc.NewController("pages",
+				mvc.GET("/pages/missing", mvc.JSON(http.StatusOK, func(_ *arkweb.Context) (map[string]string, error) {
+					return nil, &starterAdviceError{id: "missing"}
+				})),
+			)),
+			mvc.NewControllerAdvice("test.mvc.page-advice",
+				mvc.ExceptionReturnAs[*starterAdviceError](http.StatusNotFound, func(_ *arkweb.Context, _ *starterAdviceError) string {
+					return "missing"
+				}),
+			),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/pages/missing", http.StatusNotFound)
+	if snapshot.header.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want html", snapshot.header.Get("Content-Type"))
+	}
+	if snapshot.body != "<h1>missing</h1>" {
+		t.Fatalf("body = %q, want rendered advice view", snapshot.body)
+	}
+}
+
+func TestAutoConfigure_whenControllerAdviceResponseEntityExists_shouldPreserveEntity(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.advice-entity", mvc.NewRestController("users",
+				mvc.GET("/users/{id}", mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (map[string]string, error) {
+					id, err := mvc.PathString(ctx, "id")
+					if err != nil {
+						return nil, err
+					}
+					return nil, &starterAdviceError{id: id}
+				})),
+			)),
+			mvc.NewRestControllerAdvice("test.mvc.entity-advice",
+				mvc.ExceptionEntityAs[*starterAdviceError](func(_ *arkweb.Context, err *starterAdviceError) goweb.ResponseEntity[map[string]string] {
+					return goweb.Status(http.StatusGone, map[string]string{"id": err.id}).
+						WithHeader("X-Starter-Advice", "entity")
+				}),
+			),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	snapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/users/42", http.StatusGone)
+	if snapshot.header.Get("X-Starter-Advice") != "entity" {
+		t.Fatalf("X-Starter-Advice = %q, want entity", snapshot.header.Get("X-Starter-Advice"))
+	}
+	if snapshot.body != `{"id":"42"}` {
+		t.Fatalf("body = %q, want advice response entity payload", snapshot.body)
+	}
+}
+
 func TestAutoConfigure_whenResponseEntityRouteExists_shouldPreserveStatusHeadersAndBody(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `

@@ -65,6 +65,7 @@ Routes built with `mvc.ResponseBody` always write ordinary values through messag
 `mvc.Model` infers the logical view name from the request path, while `mvc.ModelAndView` carries an explicit view name, model attributes, and optional view status.
 Routes can use `mvc.ResponseStatus` to set the method-level default HTTP status while preserving explicit `ResponseEntity`, redirect, download, and stream result status values.
 Global exception handlers can be packaged as `mvc.NewControllerAdvice` or `mvc.NewRestControllerAdvice`; REST advice writes ordinary exception return values as response bodies by default.
+Advice handlers may also return `ResponseEntity[T]` when status, headers, and body must be controlled together.
 Routes can call `goark.dev/goark/web.CheckNotModified` before building an expensive body to honor `If-None-Match` and `If-Modified-Since` requests.
 Handlers can return `goark.dev/goark/web.NewStatusError` to produce Spring-style status errors through the default Problem Details mapper.
 Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, cookies, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
@@ -191,6 +192,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 `mvc.Model` 会根据请求路径推导逻辑视图名，`mvc.ModelAndView` 则携带显式视图名、模型属性和可选视图状态码。
 路由可以通过 `mvc.ResponseStatus` 设置方法级默认 HTTP 状态码，同时保留 `ResponseEntity`、重定向、下载和流式结果自身显式声明的状态码。
 全局异常处理器可以组织为 `mvc.NewControllerAdvice` 或 `mvc.NewRestControllerAdvice`；REST advice 默认把普通异常返回值写为响应体。
+Advice 处理器也可以返回 `ResponseEntity[T]`，用于同时控制状态码、响应头和响应体。
 路由可以在构造高成本响应体前调用 `goark.dev/goark/web.CheckNotModified`，以处理 `If-None-Match` 和 `If-Modified-Since` 请求。
 处理器可以返回 `goark.dev/goark/web.NewStatusError`，由默认 Problem Details 映射器输出对齐 Spring 风格的状态错误。
 业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、Cookie、拦截器、编解码器或底层传输。
