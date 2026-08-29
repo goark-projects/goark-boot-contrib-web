@@ -27,6 +27,7 @@ Official Goark Boot starter module for web applications.
 - MVC `ResponseBody` route wrapper for controller methods that explicitly write normal return values as response bodies.
 - MVC `Model` and `ModelAndView` return values for Spring-style server-side template controllers.
 - MVC `ResponseStatus` method-level default status handling for ordinary return values and no-body handlers.
+- MVC `RequestMapping` routes without HTTP method narrowing, expanded to the standard MVC request method set.
 - MVC route and controller scoped CORS mappings for Spring-style `@CrossOrigin` behavior.
 - MVC explicit validation groups for request body, multipart body, and model attribute binding.
 - MVC typed JSON request part binding with validation groups for Spring-style multipart metadata plus file upload requests.
@@ -71,6 +72,7 @@ Routes built with `mvc.Return` follow the containing controller: `mvc.NewControl
 Routes built with `mvc.ResponseBody` always write ordinary values through message converters, even when the containing controller is a normal `mvc.NewController`.
 `mvc.Model` infers the logical view name from the request path, while `mvc.ModelAndView` carries an explicit view name, model attributes, and optional view status.
 Routes can use `mvc.ResponseStatus` to set the method-level default HTTP status while preserving explicit `ResponseEntity`, redirect, download, and stream result status values.
+Routes can use `mvc.RequestMapping` when the same handler should accept the standard MVC HTTP method set, or `mvc.RequestMappingMethods` when the method set must be explicit.
 Routes and controllers can use `mvc.WithCrossOrigin` for Spring-style local CORS mappings; the starter keeps the generated preflight route inside the Arkhos deployment.
 Routes can use explicit validation groups for request body, multipart body, and model attribute binding.
 Multipart routes can bind structured JSON request parts with `mvc.RequestPartJSON[T]` or `mvc.ValidatedRequestPartJSON[T]` while file parts continue to use `mvc.RequestPart`.
@@ -185,6 +187,7 @@ Goark 官方维护的 Web 应用启动器模块。
 - 支持 MVC `ResponseBody` 路由包装器，用于普通控制器方法显式将返回值写入响应体。
 - 支持 MVC `Model` 和 `ModelAndView` 返回值，用于对齐 Spring 风格服务端模板控制器。
 - 支持 MVC `ResponseStatus` 方法级默认状态码，可作用于普通返回值和无响应体处理器。
+- 支持未限定 HTTP method 的 MVC `RequestMapping` 路由，并展开为标准 MVC 请求方法集合。
 - 支持 MVC 请求体、multipart 请求体和模型属性绑定的显式校验分组。
 - 支持 MVC 类型化 JSON request part 绑定和校验分组，用于对齐 Spring 风格 multipart 元数据加文件上传请求。
 - 支持 MVC 请求参数和请求头整表绑定，对齐 Spring 风格 `Map` 和多值 map 处理器参数。
@@ -207,6 +210,7 @@ MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`T
 通过 `mvc.ResponseBody` 构造的路由始终把普通返回值通过消息转换器写入响应体，即使所在控制器是普通 `mvc.NewController`。
 `mvc.Model` 会根据请求路径推导逻辑视图名，`mvc.ModelAndView` 则携带显式视图名、模型属性和可选视图状态码。
 路由可以通过 `mvc.ResponseStatus` 设置方法级默认 HTTP 状态码，同时保留 `ResponseEntity`、重定向、下载和流式结果自身显式声明的状态码。
+路由可以通过 `mvc.RequestMapping` 让同一个处理器接收标准 MVC HTTP 方法集合，也可以通过 `mvc.RequestMappingMethods` 显式指定方法集合。
 路由可以对请求体、multipart 请求体和模型属性绑定使用显式校验分组。
 multipart 路由可以通过 `mvc.RequestPartJSON[T]` 或 `mvc.ValidatedRequestPartJSON[T]` 绑定结构化 JSON request part，文件段继续使用 `mvc.RequestPart`。
 处理器可以通过 `mvc.RequestParamMap`、`mvc.RequestParamValuesMap`、`mvc.RequestHeaderMap` 和 `mvc.RequestHeaderValuesMap` 绑定完整请求参数和请求头视图。
