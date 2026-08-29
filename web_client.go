@@ -151,8 +151,8 @@ func registerHTTPClient(registry *goarkcontainer.Registry, settings httpClientSe
 	options := settings.clientOptions()
 	if _, exists := registry.Definition(BeanNameHTTPClientBuilder); !exists {
 		copied := append([]webclient.Option(nil), options...)
-		if err := goarkcontainer.Register[*webclient.Builder](registry, BeanNameHTTPClientBuilder, func(context.Context, goarkcontainer.Resolver) (*webclient.Builder, error) {
-			return webclient.NewBuilder(copied...), nil
+		if err := goarkcontainer.Register[*webclient.Builder](registry, BeanNameHTTPClientBuilder, func(ctx context.Context, resolver goarkcontainer.Resolver) (*webclient.Builder, error) {
+			return newHTTPClientBuilder(ctx, resolver, copied)
 		}); err != nil {
 			return err
 		}

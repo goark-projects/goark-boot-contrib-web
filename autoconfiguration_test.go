@@ -308,6 +308,53 @@ func TestAutoConfigure_whenHTTPClientConfigured_shouldRegisterBuilderAndClient(t
 	assertNoHTTPServerError(t, serverErrors)
 }
 
+func TestAutoConfigure_whenHTTPClientBuilderCustomizersExist_shouldApplyInOrder(t *testing.T) {
+	serverErrors := make(chan error, 1)
+	api := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/customized" {
+			failHTTPServer(serverErrors, writer, "path = %q, want /customized", request.URL.Path)
+			return
+		}
+		values := request.Header.Values("X-Chain")
+		if len(values) != 2 || values[0] != "first" || values[1] != "second" {
+			failHTTPServer(serverErrors, writer, "X-Chain = %#v, want first then second", values)
+			return
+		}
+		_, _ = io.WriteString(writer, "customized")
+	}))
+	defer api.Close()
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure(
+			gbcweb.WithArkhosOptions(gbcarkhos.WithAddress("127.0.0.1:0")),
+			gbcweb.WithHTTPClientBaseURL(api.URL),
+		)),
+		boot.WithConfiguration(starterHTTPClientCustomizerConfiguration{}),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	appContext, ok := app.Context()
+	if !ok {
+		t.Fatal("expected application context")
+	}
+	defaultClient, err := goark.Get[*webclient.Client](t.Context(), appContext, gbcweb.BeanNameHTTPClient)
+	if err != nil {
+		t.Fatalf("resolve http client failed: %v", err)
+	}
+	response, err := defaultClient.Get(t.Context(), "/customized")
+	if err != nil {
+		t.Fatalf("customized client get failed: %v", err)
+	}
+	if response.BodyString() != "customized" {
+		t.Fatalf("body = %q, want customized", response.BodyString())
+	}
+	assertNoHTTPServerError(t, serverErrors)
+}
+
 func TestAutoConfigure_whenHandlerReturnsError_shouldUseProblemDetails(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
@@ -593,6 +640,37 @@ func (starterErrorMapperConfiguration) RegisterWithContext(_ context.Context, co
 		}
 		return nil
 	}))
+}
+
+type starterHTTPClientCustomizerConfiguration struct{}
+
+func (starterHTTPClientCustomizerConfiguration) Name() string {
+	return "test.web.http-client-customizer"
+}
+
+func (starterHTTPClientCustomizerConfiguration) Order() int {
+	return 0
+}
+
+func (c starterHTTPClientCustomizerConfiguration) Register(ctx context.Context, registry *container.Registry) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+func (starterHTTPClientCustomizerConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
+	if err := gbcweb.RegisterHTTPClientBuilderCustomizer(config.Registry(), "testFirstHTTPClientCustomizer", gbcweb.HTTPClientBuilderCustomizerFunc(func(ctx context.Context, builder *webclient.Builder) (*webclient.Builder, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return builder.DefaultHeader("X-Chain", "first"), nil
+	}), container.WithOrder(-100)); err != nil {
+		return err
+	}
+	return gbcweb.RegisterHTTPClientBuilderCustomizer(config.Registry(), "testSecondHTTPClientCustomizer", gbcweb.HTTPClientBuilderCustomizerFunc(func(ctx context.Context, builder *webclient.Builder) (*webclient.Builder, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return builder.DefaultHeader("X-Chain", "second"), nil
+	}), container.WithOrder(100))
 }
 
 func closeApp(t *testing.T, app *boot.Application) {
