@@ -52,6 +52,7 @@ Business packages contribute MVC controllers, response advice, error mappers, or
 This starter builds the default Arkarta Servlet deployment and starts Arkhos through the Boot lifecycle.
 MVC routes may return `goark.dev/goark/web.ResponseEntity[T]`, `Download`, `TextStream`, `BinaryStream`, `SSE`, or `Redirect`; the response status, headers, cookies, cache headers, conditional validators, JSON body, negotiated `produces` media type, redirect location, and streaming headers are preserved by the generated route and starter deployment.
 Routes can call `goark.dev/goark/web.CheckNotModified` before building an expensive body to honor `If-None-Match` and `If-Modified-Since` requests.
+Handlers can return `goark.dev/goark/web.NewStatusError` to produce Spring-style status errors through the default Problem Details mapper.
 Applications may also register `gbcweb.HTTPClientBuilderCustomizer` beans to add default outbound headers, cookies, interceptors, codecs, or transports to the shared `goark.dev/goark/web/client.Builder`.
 
 ## Configuration Properties
@@ -139,6 +140,7 @@ Goark 官方维护的 Web 应用启动器模块。
 本启动器会构建默认 Arkarta Servlet 部署，并通过 Boot 生命周期启动 Arkhos。
 MVC 路由可以返回 `goark.dev/goark/web.ResponseEntity[T]`、`Download`、`TextStream`、`BinaryStream`、`SSE` 或 `Redirect`；生成路由和本启动器部署链路会保留响应状态码、响应头、Cookie、缓存头、条件请求校验器、JSON 响应体、协商后的 `produces` 媒体类型、重定向 Location 和流式响应头。
 路由可以在构造高成本响应体前调用 `goark.dev/goark/web.CheckNotModified`，以处理 `If-None-Match` 和 `If-Modified-Since` 请求。
+处理器可以返回 `goark.dev/goark/web.NewStatusError`，由默认 Problem Details 映射器输出对齐 Spring 风格的状态错误。
 业务也可以注册 `gbcweb.HTTPClientBuilderCustomizer` Bean，为共享 `goark.dev/goark/web/client.Builder` 添加默认出站请求头、Cookie、拦截器、编解码器或底层传输。
 
 ## 配置属性
