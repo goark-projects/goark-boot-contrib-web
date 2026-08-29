@@ -25,6 +25,7 @@ Official Goark Boot starter module for web applications.
 - MVC `ResponseBody` route wrapper for controller methods that explicitly write normal return values as response bodies.
 - MVC `Model` and `ModelAndView` return values for Spring-style server-side template controllers.
 - MVC `ResponseStatus` method-level default status handling for ordinary return values and no-body handlers.
+- MVC route and controller scoped CORS mappings for Spring-style `@CrossOrigin` behavior.
 - MVC explicit validation groups for request body, multipart body, and model attribute binding.
 - MVC typed JSON request part binding with validation groups for Spring-style multipart metadata plus file upload requests.
 - MVC request parameter and request header map binding for Spring-style `Map` and multi-value map handler parameters.
@@ -67,6 +68,7 @@ Routes built with `mvc.Return` follow the containing controller: `mvc.NewControl
 Routes built with `mvc.ResponseBody` always write ordinary values through message converters, even when the containing controller is a normal `mvc.NewController`.
 `mvc.Model` infers the logical view name from the request path, while `mvc.ModelAndView` carries an explicit view name, model attributes, and optional view status.
 Routes can use `mvc.ResponseStatus` to set the method-level default HTTP status while preserving explicit `ResponseEntity`, redirect, download, and stream result status values.
+Routes and controllers can use `mvc.WithCrossOrigin` for Spring-style local CORS mappings; the starter keeps the generated preflight route inside the Arkhos deployment.
 Routes can use explicit validation groups for request body, multipart body, and model attribute binding.
 Multipart routes can bind structured JSON request parts with `mvc.RequestPartJSON[T]` or `mvc.ValidatedRequestPartJSON[T]` while file parts continue to use `mvc.RequestPart`.
 Handlers can bind full request parameter and header views through `mvc.RequestParamMap`, `mvc.RequestParamValuesMap`, `mvc.RequestHeaderMap`, and `mvc.RequestHeaderValuesMap`.

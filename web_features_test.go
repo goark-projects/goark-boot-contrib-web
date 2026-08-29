@@ -21,6 +21,7 @@ import (
 	"goark.dev/goark"
 	"goark.dev/goark/container"
 	goweb "goark.dev/goark/web"
+	"goark.dev/goark/web/cors"
 	"goark.dev/goark/web/mvc"
 	"goark.dev/goark/web/static"
 )
@@ -85,7 +86,11 @@ goark:
 				})),
 				mvc.GET("/contracts", mvc.JSON(http.StatusOK, func(*arkweb.Context) (starterEventPayload, error) {
 					return starterEventPayload{State: "NEGOTIATED"}, nil
-				}), mvc.WithProduces(contractMediaType)),
+				}), mvc.WithProduces(contractMediaType), mvc.WithCrossOrigin(cors.Config{
+					AllowedOrigins: []string{"https://admin.example.com"},
+					AllowedHeaders: []string{"X-Request-ID"},
+					ExposedHeaders: []string{"X-Starter-Scoped-Interceptor"},
+				})),
 			)),
 		),
 	)
@@ -163,10 +168,17 @@ goark:
 			return nil, err
 		}
 		request.Header.Set("Accept", contractMediaType)
+		request.Header.Set("Origin", "https://admin.example.com")
 		return request, nil
 	}, http.StatusOK)
 	if got := contractSnapshot.header.Get("Content-Type"); got != contractMediaType {
 		t.Fatalf("contract Content-Type = %q, want %s", got, contractMediaType)
+	}
+	if got := contractSnapshot.header.Get("Access-Control-Allow-Origin"); got != "https://admin.example.com" {
+		t.Fatalf("contract CORS allow origin = %q", got)
+	}
+	if got := contractSnapshot.header.Get("Access-Control-Expose-Headers"); got != "X-Starter-Scoped-Interceptor" {
+		t.Fatalf("contract CORS exposed headers = %q", got)
 	}
 	if got := contractSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "hit" {
 		t.Fatalf("contract scoped filter = %q, want hit", got)
@@ -176,6 +188,26 @@ goark:
 	}
 	if contractSnapshot.body != `{"state":"NEGOTIATED"}` {
 		t.Fatalf("contract body = %q, want negotiated JSON", contractSnapshot.body)
+	}
+
+	preflightSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodOptions, serverURL+"/contracts", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Origin", "https://admin.example.com")
+		request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+		request.Header.Set("Access-Control-Request-Headers", "x-request-id")
+		return request, nil
+	}, http.StatusNoContent)
+	if got := preflightSnapshot.header.Get("Access-Control-Allow-Origin"); got != "https://admin.example.com" {
+		t.Fatalf("preflight CORS allow origin = %q", got)
+	}
+	if got := preflightSnapshot.header.Get("Access-Control-Allow-Methods"); got != "GET, HEAD" {
+		t.Fatalf("preflight CORS allow methods = %q", got)
+	}
+	if got := preflightSnapshot.header.Get("Access-Control-Allow-Headers"); got != "X-Request-ID" {
+		t.Fatalf("preflight CORS allow headers = %q", got)
 	}
 }
 
