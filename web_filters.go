@@ -31,10 +31,21 @@ const (
 	propertySpringMVCCORSAllowCredentials      = "spring.mvc.cors.allow-credentials"
 	propertySpringMVCCORSMaxAge                = "spring.mvc.cors.max-age"
 	propertySpringForwardedHeadersEnabled      = "server.forward-headers-strategy"
+	propertySpringServletEncodingEnabled       = "spring.servlet.encoding.enabled"
+	propertySpringServletEncodingCharset       = "spring.servlet.encoding.charset"
+	propertySpringServletEncodingForce         = "spring.servlet.encoding.force"
+	propertySpringServletEncodingForceRequest  = "spring.servlet.encoding.force-request"
+	propertySpringServletEncodingForceResponse = "spring.servlet.encoding.force-response"
+	propertyServerServletEncodingEnabled       = "server.servlet.encoding.enabled"
+	propertyServerServletEncodingCharset       = "server.servlet.encoding.charset"
+	propertyServerServletEncodingForce         = "server.servlet.encoding.force"
+	propertyServerServletEncodingForceRequest  = "server.servlet.encoding.force-request"
+	propertyServerServletEncodingForceResponse = "server.servlet.encoding.force-response"
 	propertySpringShallowETagEnabled           = "spring.web.shallow-etag.enabled"
 	propertySpringShallowETagMaxBodyBytes      = "spring.web.shallow-etag.max-body-bytes"
 	propertySpringHiddenMethodEnabled          = "spring.mvc.hiddenmethod.filter.enabled"
 	propertySpringFormContentEnabled           = "spring.mvc.formcontent.filter.enabled"
+	orderCharacterEncodingFilter               = -400
 	orderForwardedHeadersFilter                = -300
 	orderCORSFilter                            = -200
 	orderHiddenHTTPMethodFilter                = -100
@@ -43,11 +54,12 @@ const (
 )
 
 type filterSettings struct {
-	cors             corsFilterSettings
-	forwardedHeaders forwardedHeadersSettings
-	formContent      formContentSettings
-	hiddenMethod     hiddenMethodSettings
-	shallowETag      shallowETagSettings
+	characterEncoding characterEncodingSettings
+	cors              corsFilterSettings
+	forwardedHeaders  forwardedHeadersSettings
+	formContent       formContentSettings
+	hiddenMethod      hiddenMethodSettings
+	shallowETag       shallowETagSettings
 }
 
 type corsFilterSettings struct {
@@ -58,6 +70,14 @@ type corsFilterSettings struct {
 
 type forwardedHeadersSettings struct {
 	enabled bool
+}
+
+type characterEncodingSettings struct {
+	enabled       bool
+	encoding      string
+	forceRequest  bool
+	forceResponse bool
+	options       []gowebfilter.CharacterEncodingOption
 }
 
 type shallowETagSettings struct {
@@ -78,6 +98,12 @@ type formContentSettings struct {
 
 func defaultFilterSettings() filterSettings {
 	return filterSettings{
+		characterEncoding: characterEncodingSettings{
+			enabled:       DefaultCharacterEncodingFilterEnabled,
+			encoding:      DefaultCharacterEncoding,
+			forceRequest:  DefaultForceRequestCharacterEncoding,
+			forceResponse: DefaultForceResponseCharacterEncoding,
+		},
 		formContent:  formContentSettings{enabled: DefaultFormContentFilterEnabled, maxBodyBytes: DefaultFormContentMaxBodyBytes},
 		hiddenMethod: hiddenMethodSettings{enabled: DefaultHiddenHTTPMethodFilterEnabled},
 		shallowETag:  shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
@@ -107,6 +133,60 @@ func WithCORSEnabled(enabled bool) Option {
 func WithForwardedHeadersEnabled(enabled bool) Option {
 	return func(settings *settings) error {
 		settings.filters.forwardedHeaders.enabled = enabled
+		return nil
+	}
+}
+
+// WithCharacterEncodingFilterEnabled 设置是否启用字符集过滤器。
+func WithCharacterEncodingFilterEnabled(enabled bool) Option {
+	return func(settings *settings) error {
+		settings.filters.characterEncoding.enabled = enabled
+		return nil
+	}
+}
+
+// WithCharacterEncoding 设置 Web 默认字符集。
+func WithCharacterEncoding(encoding string) Option {
+	return func(settings *settings) error {
+		encoding = strings.TrimSpace(encoding)
+		if encoding != "" {
+			settings.filters.characterEncoding.encoding = encoding
+		}
+		return nil
+	}
+}
+
+// WithForceCharacterEncoding 设置是否同时强制请求和响应字符集。
+func WithForceCharacterEncoding(force bool) Option {
+	return func(settings *settings) error {
+		settings.filters.characterEncoding.forceRequest = force
+		settings.filters.characterEncoding.forceResponse = force
+		return nil
+	}
+}
+
+// WithForceRequestCharacterEncoding 设置是否强制请求字符集。
+func WithForceRequestCharacterEncoding(force bool) Option {
+	return func(settings *settings) error {
+		settings.filters.characterEncoding.forceRequest = force
+		return nil
+	}
+}
+
+// WithForceResponseCharacterEncoding 设置是否强制响应字符集。
+func WithForceResponseCharacterEncoding(force bool) Option {
+	return func(settings *settings) error {
+		settings.filters.characterEncoding.forceResponse = force
+		return nil
+	}
+}
+
+// WithCharacterEncodingFilterOptions 设置字符集过滤器选项并启用过滤器。
+func WithCharacterEncodingFilterOptions(options ...gowebfilter.CharacterEncodingOption) Option {
+	copied := append([]gowebfilter.CharacterEncodingOption(nil), options...)
+	return func(settings *settings) error {
+		settings.filters.characterEncoding.options = append(settings.filters.characterEncoding.options, copied...)
+		settings.filters.characterEncoding.enabled = true
 		return nil
 	}
 }
@@ -231,6 +311,41 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 	} else if value, ok := environment.GetProperty(propertySpringForwardedHeadersEnabled); ok {
 		s.filters.forwardedHeaders.enabled = strings.EqualFold(strings.TrimSpace(value), "framework")
 	}
+	if value, ok := firstProperty(environment, PropertyCharacterEncodingFilterEnabled, propertySpringServletEncodingEnabled, propertyServerServletEncodingEnabled); ok {
+		enabled, err := parseBoolProperty(PropertyCharacterEncodingFilterEnabled, value)
+		if err != nil {
+			return err
+		}
+		s.filters.characterEncoding.enabled = enabled
+	}
+	if value, ok := firstProperty(environment, PropertyCharacterEncoding, propertySpringServletEncodingCharset, propertyServerServletEncodingCharset); ok {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			s.filters.characterEncoding.encoding = value
+		}
+	}
+	if value, ok := firstProperty(environment, PropertyForceCharacterEncoding, propertySpringServletEncodingForce, propertyServerServletEncodingForce); ok {
+		force, err := parseBoolProperty(PropertyForceCharacterEncoding, value)
+		if err != nil {
+			return err
+		}
+		s.filters.characterEncoding.forceRequest = force
+		s.filters.characterEncoding.forceResponse = force
+	}
+	if value, ok := firstProperty(environment, PropertyForceRequestCharacterEncoding, propertySpringServletEncodingForceRequest, propertyServerServletEncodingForceRequest); ok {
+		force, err := parseBoolProperty(PropertyForceRequestCharacterEncoding, value)
+		if err != nil {
+			return err
+		}
+		s.filters.characterEncoding.forceRequest = force
+	}
+	if value, ok := firstProperty(environment, PropertyForceResponseCharacterEncoding, propertySpringServletEncodingForceResponse, propertyServerServletEncodingForceResponse); ok {
+		force, err := parseBoolProperty(PropertyForceResponseCharacterEncoding, value)
+		if err != nil {
+			return err
+		}
+		s.filters.characterEncoding.forceResponse = force
+	}
 	if value, ok := environment.GetProperty(PropertyShallowETagEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyShallowETagEnabled, value)
 		if err != nil {
@@ -282,6 +397,18 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 }
 
 func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettings) error {
+	if settings.characterEncoding.enabled {
+		options := append([]gowebfilter.CharacterEncodingOption{
+			gowebfilter.WithCharacterEncoding(settings.characterEncoding.encoding),
+			gowebfilter.WithForceRequestEncoding(settings.characterEncoding.forceRequest),
+			gowebfilter.WithForceResponseEncoding(settings.characterEncoding.forceResponse),
+		}, settings.characterEncoding.options...)
+		if err := goweb.RegisterFilter(registry, BeanNameCharacterEncodingFilter, gowebfilter.CharacterEncoding(
+			options...,
+		), goarkcontainer.WithOrder(orderCharacterEncodingFilter)); err != nil {
+			return err
+		}
+	}
 	if settings.forwardedHeaders.enabled {
 		if err := goweb.RegisterFilter(registry, BeanNameForwardedHeadersFilter, gowebfilter.ForwardedHeaders(), goarkcontainer.WithOrder(orderForwardedHeadersFilter)); err != nil {
 			return err

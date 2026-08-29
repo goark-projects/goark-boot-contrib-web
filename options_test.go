@@ -45,6 +45,12 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
 	}
+	if !settings.filters.characterEncoding.enabled ||
+		settings.filters.characterEncoding.encoding != DefaultCharacterEncoding ||
+		!settings.filters.characterEncoding.forceRequest ||
+		settings.filters.characterEncoding.forceResponse {
+		t.Fatalf("character encoding defaults = %+v", settings.filters.characterEncoding)
+	}
 	if !settings.filters.formContent.enabled || settings.filters.formContent.maxBodyBytes != DefaultFormContentMaxBodyBytes {
 		t.Fatalf("form content defaults = %+v", settings.filters.formContent)
 	}
@@ -93,6 +99,11 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		PropertyCORSAllowCredentials:                   "true",
 		PropertyCORSMaxAge:                             "10m",
 		PropertyForwardedHeadersEnabled:                "true",
+		PropertyCharacterEncodingFilterEnabled:         "true",
+		PropertyCharacterEncoding:                      "GBK",
+		PropertyForceCharacterEncoding:                 "false",
+		PropertyForceRequestCharacterEncoding:          "true",
+		PropertyForceResponseCharacterEncoding:         "true",
 		PropertyShallowETagEnabled:                     "true",
 		PropertyShallowETagMaxBodyBytes:                "4096",
 		PropertyHiddenHTTPMethodFilterEnabled:          "true",
@@ -147,6 +158,12 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 	if !settings.filters.forwardedHeaders.enabled {
 		t.Fatalf("forwarded headers settings = %+v", settings.filters.forwardedHeaders)
 	}
+	if !settings.filters.characterEncoding.enabled ||
+		settings.filters.characterEncoding.encoding != "GBK" ||
+		!settings.filters.characterEncoding.forceRequest ||
+		!settings.filters.characterEncoding.forceResponse {
+		t.Fatalf("character encoding settings = %+v", settings.filters.characterEncoding)
+	}
 	if !settings.viewTemplates.enabled ||
 		settings.viewTemplates.location != "resource\\templates" && settings.viewTemplates.location != "resource/templates" ||
 		settings.viewTemplates.prefix != "pages" ||
@@ -186,6 +203,7 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		PropertyStaticResourcesLocations: "resource/env",
 		PropertyStaticResourcesPattern:   "/env-static/*",
 		PropertyFormContentFilterEnabled: "false",
+		PropertyCharacterEncoding:        "GBK",
 	})
 
 	settings, err := newSettings(environment, []Option{
@@ -203,6 +221,11 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 		WithViewTemplateContentType("text/plain"),
 		WithCORS(gowebcors.Config{AllowedOrigins: []string{"https://option.example.com"}}),
 		WithForwardedHeadersEnabled(true),
+		WithCharacterEncoding("UTF-16"),
+		WithForceCharacterEncoding(false),
+		WithForceRequestCharacterEncoding(true),
+		WithForceResponseCharacterEncoding(true),
+		WithCharacterEncodingFilterOptions(gowebfilter.WithCharacterEncoding("UTF-8")),
 		WithShallowETagEnabled(true),
 		WithShallowETagMaxBodyBytes(512),
 		WithHiddenHTTPMethodFilterEnabled(true),
@@ -250,6 +273,11 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	if !settings.filters.cors.enabled ||
 		settings.filters.cors.config.AllowedOrigins[0] != "https://option.example.com" ||
 		!settings.filters.forwardedHeaders.enabled ||
+		!settings.filters.characterEncoding.enabled ||
+		settings.filters.characterEncoding.encoding != "UTF-16" ||
+		!settings.filters.characterEncoding.forceRequest ||
+		!settings.filters.characterEncoding.forceResponse ||
+		len(settings.filters.characterEncoding.options) != 1 ||
 		!settings.filters.hiddenMethod.enabled ||
 		len(settings.filters.hiddenMethod.options) != 1 ||
 		!settings.filters.formContent.enabled ||
@@ -298,6 +326,28 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		!settings.staticResources.contentVersion ||
 		settings.staticResources.fixedVersion != "v2" {
 		t.Fatalf("spring static settings = %+v", settings.staticResources)
+	}
+}
+
+func TestNewSettings_whenSpringEncodingPropertiesExist_shouldApplyCompatibleProperties(t *testing.T) {
+	environment := newTestEnvironment(t, map[string]any{
+		propertySpringServletEncodingEnabled:       "true",
+		propertySpringServletEncodingCharset:       "UTF-16",
+		propertySpringServletEncodingForce:         "false",
+		propertySpringServletEncodingForceRequest:  "true",
+		propertySpringServletEncodingForceResponse: "true",
+	})
+
+	settings, err := newSettings(environment, nil)
+	if err != nil {
+		t.Fatalf("new settings failed: %v", err)
+	}
+
+	if !settings.filters.characterEncoding.enabled ||
+		settings.filters.characterEncoding.encoding != "UTF-16" ||
+		!settings.filters.characterEncoding.forceRequest ||
+		!settings.filters.characterEncoding.forceResponse {
+		t.Fatalf("spring character encoding settings = %+v", settings.filters.characterEncoding)
 	}
 }
 

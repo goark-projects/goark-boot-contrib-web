@@ -780,6 +780,55 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenCharacterEncodingFilterEnabled_shouldApplyEncoding(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+    servlet:
+      encoding:
+        charset: UTF-8
+        force-response: true
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(mvc.NewConfiguration("test.mvc.encoding", mvc.NewRestController("encoding",
+			mvc.POST("/encoding/request", mvc.Return(http.StatusOK, func(ctx *arkweb.Context) (string, error) {
+				return ctx.Request().CharacterEncoding(), nil
+			})),
+			mvc.GET("/encoding/response", mvc.Entity(func(_ *arkweb.Context) (goweb.ResponseEntity[string], error) {
+				return goweb.Status(http.StatusOK, "ok").WithContentType("text/plain; charset=iso-8859-1"), nil
+			})),
+		))),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	requestSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, serverURL+"/encoding/request", strings.NewReader("{}"))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		return request, nil
+	}, http.StatusOK)
+	if !strings.EqualFold(requestSnapshot.body, "UTF-8") {
+		t.Fatalf("request encoding body = %q, want UTF-8", requestSnapshot.body)
+	}
+	responseSnapshot := requestUntilStatusSnapshot(t, serverURL+"/encoding/response", http.StatusOK)
+	if got := responseSnapshot.header.Get("Content-Type"); !strings.Contains(strings.ToLower(got), "charset=utf-8") {
+		t.Fatalf("response Content-Type = %q, want UTF-8 charset", got)
+	}
+}
+
 func TestAutoConfigure_whenRegisteredTwice_shouldBackOffExistingConfigurations(t *testing.T) {
 	app, err := boot.Run(
 		t.Context(),

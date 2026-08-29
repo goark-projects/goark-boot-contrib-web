@@ -13,6 +13,8 @@ const (
 	BeanNameCORSFilter = "goark.boot.web.corsFilter"
 	// BeanNameForwardedHeadersFilter 是默认代理头过滤器 Bean 名称。
 	BeanNameForwardedHeadersFilter = "goark.boot.web.forwardedHeadersFilter"
+	// BeanNameCharacterEncodingFilter 是默认字符集过滤器 Bean 名称。
+	BeanNameCharacterEncodingFilter = "goark.boot.web.characterEncodingFilter"
 	// BeanNameShallowETagFilter 是默认浅 ETag 过滤器 Bean 名称。
 	BeanNameShallowETagFilter = "goark.boot.web.shallowETagFilter"
 	// BeanNameHiddenHTTPMethodFilter 是默认隐藏 HTTP 方法过滤器 Bean 名称。
@@ -70,6 +72,14 @@ const (
 	DefaultStaticResourceFixedVersion = ""
 	// DefaultShallowETagMaxBodyBytes 是浅 ETag 默认最大缓存体积。
 	DefaultShallowETagMaxBodyBytes int64 = 1 << 20
+	// DefaultCharacterEncodingFilterEnabled 表示默认启用字符集过滤器。
+	DefaultCharacterEncodingFilterEnabled = true
+	// DefaultCharacterEncoding 是默认 Web 字符集。
+	DefaultCharacterEncoding = "UTF-8"
+	// DefaultForceRequestCharacterEncoding 表示默认强制请求字符集。
+	DefaultForceRequestCharacterEncoding = true
+	// DefaultForceResponseCharacterEncoding 表示默认不强制响应字符集。
+	DefaultForceResponseCharacterEncoding = false
 	// DefaultHiddenHTTPMethodFilterEnabled 表示默认关闭隐藏 HTTP 方法过滤器。
 	DefaultHiddenHTTPMethodFilterEnabled = false
 	// DefaultFormContentFilterEnabled 表示默认启用表单内容过滤器。
@@ -139,6 +149,16 @@ const (
 	PropertyCORSMaxAge = "goark.web.cors.max-age"
 	// PropertyForwardedHeadersEnabled 设置是否启用代理头过滤器。
 	PropertyForwardedHeadersEnabled = "goark.web.filters.forwarded-headers.enabled"
+	// PropertyCharacterEncodingFilterEnabled 设置是否启用字符集过滤器。
+	PropertyCharacterEncodingFilterEnabled = "goark.web.servlet.encoding.enabled"
+	// PropertyCharacterEncoding 设置 Web 默认字符集。
+	PropertyCharacterEncoding = "goark.web.servlet.encoding.charset"
+	// PropertyForceCharacterEncoding 设置是否同时强制请求和响应字符集。
+	PropertyForceCharacterEncoding = "goark.web.servlet.encoding.force"
+	// PropertyForceRequestCharacterEncoding 设置是否强制请求字符集。
+	PropertyForceRequestCharacterEncoding = "goark.web.servlet.encoding.force-request"
+	// PropertyForceResponseCharacterEncoding 设置是否强制响应字符集。
+	PropertyForceResponseCharacterEncoding = "goark.web.servlet.encoding.force-response"
 	// PropertyShallowETagEnabled 设置是否启用浅 ETag 过滤器。
 	PropertyShallowETagEnabled = "goark.web.filters.shallow-etag.enabled"
 	// PropertyShallowETagMaxBodyBytes 设置浅 ETag 最大缓存体积。
