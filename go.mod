@@ -4,9 +4,9 @@ go 1.25
 
 require (
 	goark.dev/arkarta v0.0.2-0.20260829011620-1c7ad55d7f26
-	goark.dev/boot v0.0.0
-	goark.dev/gbc-arkhos v0.0.0
-	goark.dev/goark v0.0.0
+	goark.dev/boot v0.0.0-20260902110755-1bc0082c607a
+	goark.dev/gbc-arkhos v0.0.0-20260902111000-39c6bf41e13e
+	goark.dev/goark v0.0.0-20260829150741-5da2fd1fb184
 )
 
 require (
@@ -37,16 +37,8 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	goark.dev/arkhos v0.0.0 // indirect
+	goark.dev/arkhos v0.0.0-20260828101229-aa65c036881c // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 )
-
-replace goark.dev/arkhos => ../arkhos
-
-replace goark.dev/boot => ../goark-boot
-
-replace goark.dev/gbc-arkhos => ../goark-boot-contrib-arkhos
-
-replace goark.dev/goark => ../goark
