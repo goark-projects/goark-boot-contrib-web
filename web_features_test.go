@@ -312,6 +312,7 @@ func requestUntilStatusWith(t *testing.T, build func() (*http.Request, error), s
 
 func requestUntilStatusWithClient(t *testing.T, client http.Client, build func() (*http.Request, error), statusCode int) responseSnapshot {
 	t.Helper()
+	defer client.CloseIdleConnections()
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		request, err := build()

@@ -1469,6 +1469,7 @@ func requestUntilStatusSnapshot(t *testing.T, target string, statusCode int) res
 func requestUntilStatusSnapshotWithMethod(t *testing.T, method string, target string, statusCode int) responseSnapshot {
 	t.Helper()
 	client := http.Client{Timeout: time.Second}
+	defer client.CloseIdleConnections()
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		request, requestErr := http.NewRequestWithContext(t.Context(), method, target, nil)
