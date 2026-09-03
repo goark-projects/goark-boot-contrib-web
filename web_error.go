@@ -93,7 +93,7 @@ func (s *settings) applyErrorEnvironment(environment coreenv.Environment) error 
 
 func registerErrorHandling(registry *goarkcontainer.Registry, settings errorHandlingSettings) error {
 	if settings.problemDetailsEnabled {
-		if err := goweb.RegisterErrorMapper(registry, BeanNameProblemDetailsMapper, problem.NewMapper(), goarkcontainer.WithOrder(orderProblemDetailsMapper)); err != nil {
+		if err := goweb.RegisterFallbackErrorMapper(registry, BeanNameProblemDetailsMapper, problem.NewMapper(), goarkcontainer.WithOrder(orderProblemDetailsMapper)); err != nil {
 			return err
 		}
 	}

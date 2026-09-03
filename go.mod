@@ -6,7 +6,7 @@ require (
 	goark.dev/arkarta v0.0.2-0.20260903014600-5fb9454949e6
 	goark.dev/boot v0.0.0-20260902110755-1bc0082c607a
 	goark.dev/gbc-arkhos v0.0.0-20260903014812-d07d1790a5f8
-	goark.dev/goark v0.0.0-20260903014718-b86b37d45d9c
+	goark.dev/goark v0.0.0-20260903021045-47c39724cfc4
 )
 
 require (

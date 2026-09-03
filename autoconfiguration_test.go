@@ -1200,6 +1200,39 @@ goark:
 	}
 }
 
+func TestAutoConfigure_whenDependentErrorMapperConfigurerExists_shouldApplyBeforeProblemDetails(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "app.yml"), `
+goark:
+  web:
+    server:
+      address: 127.0.0.1:0
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(
+			mvc.NewConfiguration("test.mvc.dependent-error", mvc.NewController("dependent-errors",
+				mvc.GET("/dependent-errors", mvc.JSON(http.StatusOK, func(_ *arkweb.Context) (map[string]string, error) {
+					return nil, errStarterMapped
+				})),
+			)),
+			starterDependentErrorMapperConfiguration{},
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	body := requestUntilStatus(t, starterServerURL(t, app)+"/dependent-errors", http.StatusConflict)
+	if body != "mapped" {
+		t.Fatalf("body = %q, want mapped", body)
+	}
+}
+
 func TestAutoConfigure_whenWebFiltersConfigured_shouldApplyCorsForwardedHeadersAndETag(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
@@ -1499,6 +1532,39 @@ func requestUntilStatusSnapshotWithMethod(t *testing.T, method string, target st
 }
 
 type starterErrorMapperConfiguration struct{}
+
+type starterErrorMapperDependency struct{}
+
+type starterDependentErrorMapperConfiguration struct{}
+
+func (starterDependentErrorMapperConfiguration) Name() string {
+	return "test.web.dependent-error-mapper"
+}
+
+func (starterDependentErrorMapperConfiguration) Order() int {
+	return 0
+}
+
+func (c starterDependentErrorMapperConfiguration) Register(ctx context.Context, registry *container.Registry) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+func (starterDependentErrorMapperConfiguration) RegisterWithContext(_ context.Context, config goark.ConfigurationContext) error {
+	if err := container.RegisterInstance(config.Registry(), "testErrorMapperDependency", &starterErrorMapperDependency{}); err != nil {
+		return err
+	}
+	return container.Register[goweb.Configurer](config.Registry(), "testDependentErrorMapper", func(_ context.Context, _ container.Resolver) (goweb.Configurer, error) {
+		return goweb.ConfigurerFunc(func(_ context.Context, registry *goweb.Registry) error {
+			registry.UseErrorMapper(goweb.ErrorMapperFunc(func(_ *arkweb.Context, err error) arkweb.Result {
+				if errors.Is(err, errStarterMapped) {
+					return arkweb.Text(http.StatusConflict, "mapped")
+				}
+				return nil
+			}))
+			return nil
+		}), nil
+	}, container.WithFactoryDependencies("testErrorMapperDependency"))
+}
 
 func (starterErrorMapperConfiguration) Name() string {
 	return "test.web.error-mapper"
