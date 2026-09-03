@@ -5,7 +5,7 @@ go 1.25
 require (
 	goark.dev/arkarta v0.0.2-0.20260903014600-5fb9454949e6
 	goark.dev/boot v0.0.0-20260902110755-1bc0082c607a
-	goark.dev/gbc-arkhos v0.0.0-20260903121740-a7d63f53c037
+	goark.dev/gbc-arkhos v0.0.0-20260903124018-320002fb5aba
 	goark.dev/goark v0.0.0-20260903021045-47c39724cfc4
 )
 
@@ -44,8 +44,8 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	goark.dev/arkhos v0.0.0-20260903114123-7f5757974998 // indirect
-	goark.dev/gbc-log v0.0.0-20260903121539-f0552bf0cdf7 // indirect
-	goark.dev/log v0.0.3-0.20260903121202-e1c0a25b1eb5 // indirect
+	goark.dev/gbc-log v0.0.0-20260903123825-ac7837a2856c // indirect
+	goark.dev/log v0.0.3-0.20260903123157-70c5420fcd7e // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
