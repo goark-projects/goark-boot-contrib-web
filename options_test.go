@@ -79,6 +79,38 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 	}
 }
 
+func TestNewSettings_whenApplicationNameConfigured_shouldUseDirectGoarkNamespace(t *testing.T) {
+	environment := newTestEnvironment(t, map[string]any{
+		"goark.application.name":     "admin",
+		"goark.web.application.name": "legacy",
+	})
+
+	settings, err := newSettings(environment, nil)
+	if err != nil {
+		t.Fatalf("new settings failed: %v", err)
+	}
+	if PropertyApplicationName != "goark.application.name" {
+		t.Fatalf("application name property = %q", PropertyApplicationName)
+	}
+	if settings.applicationName != "admin" {
+		t.Fatalf("application name = %q, want admin", settings.applicationName)
+	}
+}
+
+func TestNewSettings_whenOnlyLegacyWebApplicationNameExists_shouldIgnoreIt(t *testing.T) {
+	environment := newTestEnvironment(t, map[string]any{
+		"goark.web.application.name": "legacy",
+	})
+
+	settings, err := newSettings(environment, nil)
+	if err != nil {
+		t.Fatalf("new settings failed: %v", err)
+	}
+	if settings.applicationName != DefaultApplicationName {
+		t.Fatalf("application name = %q, want default %q", settings.applicationName, DefaultApplicationName)
+	}
+}
+
 func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
 		PropertyApplicationName:                        "admin",

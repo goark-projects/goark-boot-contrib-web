@@ -115,10 +115,10 @@ const (
 )
 
 const (
-	// PropertyApplicationName 设置 Web 应用名称。
-	PropertyApplicationName = "goark.web.application.name"
+	// PropertyApplicationName 设置 Goark 应用名称。
+	PropertyApplicationName = "goark.application.name"
 	// PropertyServletContextPath 设置 Servlet 上下文路径。
-	PropertyServletContextPath = "goark.web.servlet.context-path"
+	PropertyServletContextPath = "server.servlet.context-path"
 	// PropertyServletMapping 设置 Servlet 映射模式。
 	PropertyServletMapping = "goark.web.servlet.mapping"
 	// PropertyStaticResourcesEnabled 设置是否启用静态资源约定。

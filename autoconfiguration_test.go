@@ -1642,12 +1642,10 @@ func mkdir(t *testing.T, path string) {
 func clearConfigDataEnvironment(t *testing.T) {
 	t.Helper()
 	for _, name := range []string{
-		configdata.EnvConfigLocation,
-		configdata.EnvConfigName,
-		configdata.EnvProfilesActive,
-		"SPRING_CONFIG_LOCATION",
-		"SPRING_CONFIG_NAME",
-		"SPRING_PROFILES_ACTIVE",
+		configdata.EnvSpringConfigLocation,
+		configdata.EnvSpringConfigAdditionalLocation,
+		configdata.EnvSpringConfigName,
+		configdata.EnvSpringProfilesActive,
 	} {
 		t.Setenv(name, "")
 	}

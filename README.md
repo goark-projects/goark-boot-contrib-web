@@ -91,7 +91,7 @@ Applications that need bidirectional WebSocket endpoints can register them with 
 
 | Property | Default | Description |
 | --- | --- | --- |
-| `goark.web.application.name` | `goark` | Arkarta Servlet web application name. |
+| `goark.application.name` | `goark` | Goark application name used by the Arkarta Servlet deployment. |
 | `goark.web.servlet.context-path` | `/` | Servlet context path. Must start with `/`. |
 | `goark.web.servlet.mapping` | `/` | Servlet mapping pattern for the Goark Web router. |
 | `goark.web.resources.static.enabled` | `true` | Enable the default static resource convention. |
@@ -228,7 +228,7 @@ Advice 处理器也可以返回 `ResponseEntity[T]`，用于同时控制状态�
 
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
-| `goark.web.application.name` | `goark` | Arkarta Servlet Web 应用名称。 |
+| `goark.application.name` | `goark` | Arkarta Servlet 部署使用的 Goark 应用名称。 |
 | `goark.web.servlet.context-path` | `/` | Servlet 上下文路径，必须以 `/` 开头。 |
 | `goark.web.servlet.mapping` | `/` | Goark Web Router 对应的 Servlet 映射模式。 |
 | `goark.web.resources.static.enabled` | `true` | 是否启用默认静态资源约定。 |
