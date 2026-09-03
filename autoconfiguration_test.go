@@ -51,10 +51,11 @@ func (e *starterAdviceError) Error() string {
 func TestAutoConfigure_whenMVCControllerExists_shouldServeRequestWithArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -94,10 +95,11 @@ func TestAutoConfigure_whenDefaultResourceStaticExists_shouldServeStaticResource
 	mkdir(t, staticDir)
 	mkdir(t, publicDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(staticDir, "app.txt"), "resource static")
 	writeFile(t, filepath.Join(publicDir, "public.txt"), "resource public")
@@ -129,22 +131,26 @@ func TestAutoConfigure_whenStaticResourcesConfigured_shouldServeConfiguredLocati
 	mkdir(t, resource)
 	mkdir(t, publicDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
     resources:
+      static-locations: public
       static:
-        locations: public
-        pattern: /assets/*
         welcome-files: index.html
-        chain:
+      chain:
+        strategy:
           content:
             enabled: true
           fixed:
             version: v1
-        cache:
+      cache:
+        cachecontrol:
           max-age: 1h
+  mvc:
+    static-path-pattern: /assets/*
 `)
 	writeFile(t, filepath.Join(publicDir, "app.txt"), "configured static")
 	writeFile(t, filepath.Join(publicDir, "index.html"), "configured index")
@@ -208,10 +214,11 @@ func TestAutoConfigure_whenDefaultTemplateExists_shouldRenderMVCView(t *testing.
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "home.html"), "<h1>{{.Title}}</h1>")
 	t.Chdir(root)
@@ -246,10 +253,11 @@ func TestAutoConfigure_whenMVCViewControllerExists_shouldRenderTemplate(t *testi
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "ready.html"), "<h1>ready</h1>")
 	t.Chdir(root)
@@ -283,10 +291,11 @@ func TestAutoConfigure_whenMVCModelViewExists_shouldRenderTemplateModel(t *testi
 	mkdir(t, filepath.Join(templateDir, "reports"))
 	mkdir(t, filepath.Join(templateDir, "pages"))
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "reports", "summary.html"), "<h1>{{.Title}}</h1>")
 	writeFile(t, filepath.Join(templateDir, "pages", "detail.html"), "<h1>{{.Title}}</h1>")
@@ -328,10 +337,11 @@ func TestAutoConfigure_whenMVCModelAttributeInitializerExists_shouldRenderTempla
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "home.html"), "<h1>{{.AppName}}</h1>")
 	writeFile(t, filepath.Join(templateDir, "dashboard.html"), "<h1>{{.AppName}} {{.Title}}</h1>")
@@ -380,10 +390,11 @@ func TestAutoConfigure_whenControllerAdviceModelAttributeInitializerExists_shoul
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "dashboard.html"), "<h1>{{.AppName}} {{.Title}}</h1>")
 	t.Chdir(root)
@@ -427,10 +438,11 @@ func TestAutoConfigure_whenControllerAndRestControllerReturnValuesExist_shouldUs
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "home.html"), "<h1>home</h1>")
 	t.Chdir(root)
@@ -477,10 +489,11 @@ goark:
 func TestAutoConfigure_whenControllerReturnsRedirectViewName_shouldWriteRedirect(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -518,10 +531,11 @@ goark:
 func TestAutoConfigure_whenModelViewRedirectHasAttributes_shouldExpandLocation(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -560,10 +574,11 @@ goark:
 func TestAutoConfigure_whenControllerReturnsForwardViewName_shouldDispatchTarget(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -612,10 +627,11 @@ func TestAutoConfigure_whenControllerResponseBodyExists_shouldBypassViewResoluti
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "status.html"), "<h1>view</h1>")
 	t.Chdir(root)
@@ -649,10 +665,11 @@ goark:
 func TestAutoConfigure_whenMVCResponseStatusExists_shouldApplyDefaultStatus(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -687,10 +704,11 @@ goark:
 func TestAutoConfigure_whenMVCValidationGroupsExist_shouldUseExplicitGroups(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -737,10 +755,11 @@ goark:
 func TestAutoConfigure_whenRestControllerAdviceExists_shouldMapErrors(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -784,10 +803,11 @@ func TestAutoConfigure_whenControllerAdviceValueExists_shouldRenderTemplate(t *t
 	templateDir := filepath.Join(resource, "templates")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "missing.html"), "<h1>missing</h1>")
 	t.Chdir(root)
@@ -826,10 +846,11 @@ goark:
 func TestAutoConfigure_whenControllerAdviceResponseEntityExists_shouldPreserveEntity(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -871,10 +892,11 @@ goark:
 func TestAutoConfigure_whenResponseEntityRouteExists_shouldPreserveStatusHeadersAndBody(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -1096,10 +1118,11 @@ func TestAutoConfigure_whenHTTPClientBuilderCustomizersExist_shouldApplyInOrder(
 func TestAutoConfigure_whenHandlerReturnsError_shouldUseProblemDetails(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -1131,10 +1154,11 @@ goark:
 func TestAutoConfigure_whenErrorEndpointRequestedDirectly_shouldReturnProblemDetails(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
     error:
       path: /error
 `)
@@ -1162,10 +1186,11 @@ goark:
 func TestAutoConfigure_whenWebErrorMapperConfigurerExists_shouldApplyMapper(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -1203,10 +1228,11 @@ goark:
 func TestAutoConfigure_whenDependentErrorMapperConfigurerExists_shouldApplyBeforeProblemDetails(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -1236,10 +1262,11 @@ goark:
 func TestAutoConfigure_whenWebFiltersConfigured_shouldApplyCorsForwardedHeadersAndETag(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
     cors:
       enabled: true
       allowed-origins: https://admin.example.com
@@ -1251,8 +1278,8 @@ goark:
     filters:
       forwarded-headers:
         enabled: true
-      shallow-etag:
-        enabled: true
+    shallow-etag:
+      enabled: true
 `)
 
 	app, err := boot.Run(
@@ -1332,12 +1359,13 @@ goark:
 func TestAutoConfigure_whenHiddenHTTPMethodFilterEnabled_shouldRouteOverriddenMethod(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
-  web:
-    server:
-      address: 127.0.0.1:0
-    filters:
-      hidden-method:
+  mvc:
+    hiddenmethod:
+      filter:
         enabled: true
 `)
 
@@ -1375,12 +1403,13 @@ goark:
 func TestAutoConfigure_whenFormContentFilterEnabled_shouldBindDeleteFormParameters(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
-  web:
-    server:
-      address: 127.0.0.1:0
-    filters:
-      form-content:
+  mvc:
+    formcontent:
+      filter:
         enabled: true
 `)
 
@@ -1415,14 +1444,14 @@ goark:
 func TestAutoConfigure_whenCharacterEncodingFilterEnabled_shouldApplyEncoding(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
-  web:
-    server:
-      address: 127.0.0.1:0
-    servlet:
-      encoding:
-        charset: UTF-8
-        force-response: true
+  servlet:
+    encoding:
+      charset: UTF-8
+      force-response: true
 `)
 
 	app, err := boot.Run(
@@ -1642,10 +1671,10 @@ func mkdir(t *testing.T, path string) {
 func clearConfigDataEnvironment(t *testing.T) {
 	t.Helper()
 	for _, name := range []string{
-		configdata.EnvSpringConfigLocation,
-		configdata.EnvSpringConfigAdditionalLocation,
-		configdata.EnvSpringConfigName,
-		configdata.EnvSpringProfilesActive,
+		configdata.EnvConfigLocation,
+		configdata.EnvConfigAdditionalLocation,
+		configdata.EnvConfigName,
+		configdata.EnvProfilesActive,
 	} {
 		t.Setenv(name, "")
 	}

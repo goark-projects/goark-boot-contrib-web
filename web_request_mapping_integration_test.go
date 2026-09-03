@@ -25,10 +25,11 @@ type starterPathPrefixPayload struct {
 func TestAutoConfigure_whenRequestMappingWithoutMethodExists_shouldServeDefaultMethodsThroughArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -71,10 +72,11 @@ goark:
 func TestAutoConfigure_whenControllerPathPrefixesExist_shouldServePrefixedRoutesThroughArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	controller := mvc.NewRestController("prefixed",

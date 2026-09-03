@@ -45,10 +45,11 @@ func TestRegisterWebSocketEndpoint_whenEndpointIsNil_shouldReturnError(t *testin
 func TestAutoConfigure_whenWebSocketEndpointRegistered_shouldUpgradeAndEcho(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(

@@ -92,62 +92,36 @@ Applications that need bidirectional WebSocket endpoints can register them with 
 | Property | Default | Description |
 | --- | --- | --- |
 | `goark.application.name` | `goark` | Goark application name used by the Arkarta Servlet deployment. |
-| `goark.web.servlet.context-path` | `/` | Servlet context path. Must start with `/`. |
-| `goark.web.servlet.mapping` | `/` | Servlet mapping pattern for the Goark Web router. |
+| `server.servlet.context-path` | `/` | Servlet context path. Must start with `/`. |
+| `goark.servlet.mapping` | `/` | Servlet mapping pattern for the Goark Web router. |
 | `goark.web.resources.static.enabled` | `true` | Enable the default static resource convention. |
-| `goark.web.resources.static.locations` | `resource/static,resource/public,resource/resources,resource/META-INF/resources` | Comma-separated static resource directories. `classpath:/static/` maps to `resource/static`. |
-| `goark.web.resources.static.location` | unset | Single-location alias for `goark.web.resources.static.locations`. |
-| `goark.web.resources.static.pattern` | `/static/*` | Servlet mapping pattern for static resources. |
+| `goark.web.resources.static-locations` | `resource/static,resource/public,resource/resources,resource/META-INF/resources` | Comma-separated static resource directories. `classpath:/static/` maps to `resource/static`. |
+| `goark.web.resources.static.location` | unset | Optional single static resource directory. |
+| `goark.mvc.static-path-pattern` | `/static/*` | Servlet mapping pattern for static resources. |
 | `goark.web.resources.static.servlet-name` | `goark.boot.web.static` | Default servlet name for static resources. |
 | `goark.web.resources.static.welcome-files` | `index.html,index.htm` | Comma-separated welcome files. Empty option disables welcome lookup. |
-| `goark.web.resources.static.cache-control` | unset | Static resource `Cache-Control` header value. |
-| `goark.web.resources.static.cache.max-age` | unset | Static resource cache duration; emits `public, max-age=N`. |
-| `goark.web.resources.static.chain.content.enabled` | `false` | Enable content-hash versioned static resource paths. |
-| `goark.web.resources.static.chain.fixed.version` | unset | Enable a fixed version prefix for static resource paths. |
-| `goark.web.mvc.view.enabled` | `true` | Enable default MVC template view resolver when templates exist. |
-| `goark.web.mvc.view.templates.location` | `resource/templates` | Template root directory. `classpath:/templates/` maps to `resource/templates`. |
-| `goark.web.mvc.view.prefix` | unset | Prefix added to logical view names. |
-| `goark.web.mvc.view.suffix` | `.html` | Suffix added to logical view names. |
-| `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | Default template response content type. |
-| `goark.web.servlet.encoding.enabled` | `true` | Enable the character encoding filter. |
-| `goark.web.servlet.encoding.charset` | `UTF-8` | Default request and response charset. |
-| `goark.web.servlet.encoding.force` | unset | Force both request and response charset when set. |
-| `goark.web.servlet.encoding.force-request` | `true` | Force request charset when missing or different. |
-| `goark.web.servlet.encoding.force-response` | `false` | Force response charset when `Content-Type` is present. |
-| `goark.web.filters.hidden-method.enabled` | `false` | Enable POST form `_method` overrides for PUT, PATCH, and DELETE. |
-| `goark.web.filters.form-content.enabled` | `true` | Enable PUT, PATCH, and DELETE URL-encoded form body parameters. |
+| `goark.web.resources.cache.cache-control` | unset | Static resource `Cache-Control` header value. |
+| `goark.web.resources.cache.cachecontrol.max-age` | unset | Static resource cache duration; emits `public, max-age=N`. |
+| `goark.web.resources.chain.strategy.content.enabled` | `false` | Enable content-hash versioned static resource paths. |
+| `goark.web.resources.chain.strategy.fixed.version` | unset | Enable a fixed version prefix for static resource paths. |
+| `goark.mvc.view.enabled` | `true` | Enable default MVC template view resolver when templates exist. |
+| `goark.mvc.view.templates.location` | `resource/templates` | Template root directory. `classpath:/templates/` maps to `resource/templates`. |
+| `goark.mvc.view.prefix` | unset | Prefix added to logical view names. |
+| `goark.mvc.view.suffix` | `.html` | Suffix added to logical view names. |
+| `goark.mvc.view.content-type` | `text/html; charset=utf-8` | Default template response content type. |
+| `goark.servlet.encoding.enabled` | `true` | Enable the character encoding filter. |
+| `goark.servlet.encoding.charset` | `UTF-8` | Default request and response charset. |
+| `goark.servlet.encoding.force` | unset | Force both request and response charset when set. |
+| `goark.servlet.encoding.force-request` | `true` | Force request charset when missing or different. |
+| `goark.servlet.encoding.force-response` | `false` | Force response charset when `Content-Type` is present. |
+| `goark.mvc.hiddenmethod.filter.enabled` | `false` | Enable POST form `_method` overrides for PUT, PATCH, and DELETE. |
+| `goark.mvc.formcontent.filter.enabled` | `true` | Enable PUT, PATCH, and DELETE URL-encoded form body parameters. |
 | `goark.web.filters.form-content.max-body-bytes` | `1048576` | Maximum request body cached by the form content filter. |
 | `goark.web.client.enabled` | `true` | Register the default outbound Web HTTP client builder and client beans. |
 | `goark.web.client.base-url` | unset | Optional base URL used by relative outbound HTTP requests. |
 | `goark.web.client.timeout` | `30s` | Default outbound HTTP request timeout. |
 | `goark.web.client.max-response-bytes` | `16777216` | Maximum response body snapshot size. `-1` disables the limit. |
 | `goark.web.client.default-headers` | unset | Comma-separated default headers in `Name=Value` format. |
-
-Spring-compatible aliases are recognized for static resources:
-
-| Spring-compatible property | Goark property |
-| --- | --- |
-| `spring.web.resources.static-locations` | `goark.web.resources.static.locations` |
-| `spring.mvc.static-path-pattern` | `goark.web.resources.static.pattern` |
-| `spring.web.resources.cache.cache-control` | `goark.web.resources.static.cache-control` |
-| `spring.web.resources.cache.cachecontrol.max-age` | `goark.web.resources.static.cache.max-age` |
-| `spring.web.resources.cache.period` | `goark.web.resources.static.cache.max-age` |
-| `spring.web.resources.chain.strategy.content.enabled` | `goark.web.resources.static.chain.content.enabled` |
-| `spring.web.resources.chain.strategy.fixed.version` | `goark.web.resources.static.chain.fixed.version` |
-| `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
-| `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
-| `spring.servlet.encoding.enabled` | `goark.web.servlet.encoding.enabled` |
-| `spring.servlet.encoding.charset` | `goark.web.servlet.encoding.charset` |
-| `spring.servlet.encoding.force` | `goark.web.servlet.encoding.force` |
-| `spring.servlet.encoding.force-request` | `goark.web.servlet.encoding.force-request` |
-| `spring.servlet.encoding.force-response` | `goark.web.servlet.encoding.force-response` |
-| `server.servlet.encoding.enabled` | `goark.web.servlet.encoding.enabled` |
-| `server.servlet.encoding.charset` | `goark.web.servlet.encoding.charset` |
-| `server.servlet.encoding.force` | `goark.web.servlet.encoding.force` |
-| `server.servlet.encoding.force-request` | `goark.web.servlet.encoding.force-request` |
-| `server.servlet.encoding.force-response` | `goark.web.servlet.encoding.force-response` |
-| `spring.mvc.hiddenmethod.filter.enabled` | `goark.web.filters.hidden-method.enabled` |
-| `spring.mvc.formcontent.filter.enabled` | `goark.web.filters.form-content.enabled` |
 
 Server, multipart, and Servlet async timeout properties are provided by `goark.dev/gbc-arkhos`, which this starter includes by default.
 
@@ -229,62 +203,36 @@ Advice 处理器也可以返回 `ResponseEntity[T]`，用于同时控制状态�
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
 | `goark.application.name` | `goark` | Arkarta Servlet 部署使用的 Goark 应用名称。 |
-| `goark.web.servlet.context-path` | `/` | Servlet 上下文路径，必须以 `/` 开头。 |
-| `goark.web.servlet.mapping` | `/` | Goark Web Router 对应的 Servlet 映射模式。 |
+| `server.servlet.context-path` | `/` | Servlet 上下文路径，必须以 `/` 开头。 |
+| `goark.servlet.mapping` | `/` | Goark Web Router 对应的 Servlet 映射模式。 |
 | `goark.web.resources.static.enabled` | `true` | 是否启用默认静态资源约定。 |
-| `goark.web.resources.static.locations` | `resource/static,resource/public,resource/resources,resource/META-INF/resources` | 静态资源目录列表，逗号分隔。`classpath:/static/` 会映射为 `resource/static`。 |
-| `goark.web.resources.static.location` | 未设置 | `goark.web.resources.static.locations` 的单目录别名。 |
-| `goark.web.resources.static.pattern` | `/static/*` | 静态资源 Servlet 映射。 |
+| `goark.web.resources.static-locations` | `resource/static,resource/public,resource/resources,resource/META-INF/resources` | 静态资源目录列表，逗号分隔。`classpath:/static/` 会映射为 `resource/static`。 |
+| `goark.web.resources.static.location` | 未设置 | 可选的单个静态资源目录。 |
+| `goark.mvc.static-path-pattern` | `/static/*` | 静态资源 Servlet 映射。 |
 | `goark.web.resources.static.servlet-name` | `goark.boot.web.static` | 静态资源 default servlet 名称。 |
 | `goark.web.resources.static.welcome-files` | `index.html,index.htm` | welcome file 列表，逗号分隔；通过 Option 传空列表可禁用 welcome 查找。 |
-| `goark.web.resources.static.cache-control` | 未设置 | 静态资源 `Cache-Control` 响应头。 |
-| `goark.web.resources.static.cache.max-age` | 未设置 | 静态资源缓存时间，生成 `public, max-age=N`。 |
-| `goark.web.resources.static.chain.content.enabled` | `false` | 是否启用内容哈希版本静态资源路径。 |
-| `goark.web.resources.static.chain.fixed.version` | 未设置 | 静态资源固定版本路径前缀。 |
-| `goark.web.mvc.view.enabled` | `true` | 模板存在时启用默认 MVC 模板视图解析器。 |
-| `goark.web.mvc.view.templates.location` | `resource/templates` | 模板根目录，`classpath:/templates/` 会映射为 `resource/templates`。 |
-| `goark.web.mvc.view.prefix` | 未设置 | 逻辑视图名前缀。 |
-| `goark.web.mvc.view.suffix` | `.html` | 逻辑视图名后缀。 |
-| `goark.web.mvc.view.content-type` | `text/html; charset=utf-8` | 模板响应默认媒体类型。 |
-| `goark.web.servlet.encoding.enabled` | `true` | 是否启用字符集过滤器。 |
-| `goark.web.servlet.encoding.charset` | `UTF-8` | 默认请求和响应字符集。 |
-| `goark.web.servlet.encoding.force` | 未设置 | 设置后同时强制请求和响应字符集。 |
-| `goark.web.servlet.encoding.force-request` | `true` | 是否强制请求字符集。 |
-| `goark.web.servlet.encoding.force-response` | `false` | 响应存在 `Content-Type` 时是否强制响应字符集。 |
-| `goark.web.filters.hidden-method.enabled` | `false` | 是否启用 POST 表单 `_method` 覆盖，默认允许 PUT、PATCH 和 DELETE。 |
-| `goark.web.filters.form-content.enabled` | `true` | 是否启用 PUT、PATCH 和 DELETE 的 URL 编码表单体参数绑定。 |
+| `goark.web.resources.cache.cache-control` | 未设置 | 静态资源 `Cache-Control` 响应头。 |
+| `goark.web.resources.cache.cachecontrol.max-age` | 未设置 | 静态资源缓存时间，生成 `public, max-age=N`。 |
+| `goark.web.resources.chain.strategy.content.enabled` | `false` | 是否启用内容哈希版本静态资源路径。 |
+| `goark.web.resources.chain.strategy.fixed.version` | 未设置 | 静态资源固定版本路径前缀。 |
+| `goark.mvc.view.enabled` | `true` | 模板存在时启用默认 MVC 模板视图解析器。 |
+| `goark.mvc.view.templates.location` | `resource/templates` | 模板根目录，`classpath:/templates/` 会映射为 `resource/templates`。 |
+| `goark.mvc.view.prefix` | 未设置 | 逻辑视图名前缀。 |
+| `goark.mvc.view.suffix` | `.html` | 逻辑视图名后缀。 |
+| `goark.mvc.view.content-type` | `text/html; charset=utf-8` | 模板响应默认媒体类型。 |
+| `goark.servlet.encoding.enabled` | `true` | 是否启用字符集过滤器。 |
+| `goark.servlet.encoding.charset` | `UTF-8` | 默认请求和响应字符集。 |
+| `goark.servlet.encoding.force` | 未设置 | 设置后同时强制请求和响应字符集。 |
+| `goark.servlet.encoding.force-request` | `true` | 是否强制请求字符集。 |
+| `goark.servlet.encoding.force-response` | `false` | 响应存在 `Content-Type` 时是否强制响应字符集。 |
+| `goark.mvc.hiddenmethod.filter.enabled` | `false` | 是否启用 POST 表单 `_method` 覆盖，默认允许 PUT、PATCH 和 DELETE。 |
+| `goark.mvc.formcontent.filter.enabled` | `true` | 是否启用 PUT、PATCH 和 DELETE 的 URL 编码表单体参数绑定。 |
 | `goark.web.filters.form-content.max-body-bytes` | `1048576` | 表单内容过滤器最大缓存请求体字节数。 |
 | `goark.web.client.enabled` | `true` | 是否注册默认出站 Web HTTP 客户端 Builder 与 Client Bean。 |
 | `goark.web.client.base-url` | 未设置 | 相对出站 HTTP 请求使用的可选基础 URL。 |
 | `goark.web.client.timeout` | `30s` | 默认出站 HTTP 请求超时。 |
 | `goark.web.client.max-response-bytes` | `16777216` | 响应体快照最大读取字节数；`-1` 表示不限制。 |
 | `goark.web.client.default-headers` | 未设置 | 默认请求头，多个值以英文逗号分隔，格式为 `Name=Value`。 |
-
-静态资源支持以下 Spring 兼容属性：
-
-| Spring 兼容属性 | Goark 属性 |
-| --- | --- |
-| `spring.web.resources.static-locations` | `goark.web.resources.static.locations` |
-| `spring.mvc.static-path-pattern` | `goark.web.resources.static.pattern` |
-| `spring.web.resources.cache.cache-control` | `goark.web.resources.static.cache-control` |
-| `spring.web.resources.cache.cachecontrol.max-age` | `goark.web.resources.static.cache.max-age` |
-| `spring.web.resources.cache.period` | `goark.web.resources.static.cache.max-age` |
-| `spring.web.resources.chain.strategy.content.enabled` | `goark.web.resources.static.chain.content.enabled` |
-| `spring.web.resources.chain.strategy.fixed.version` | `goark.web.resources.static.chain.fixed.version` |
-| `spring.mvc.view.prefix` | `goark.web.mvc.view.prefix` |
-| `spring.mvc.view.suffix` | `goark.web.mvc.view.suffix` |
-| `spring.servlet.encoding.enabled` | `goark.web.servlet.encoding.enabled` |
-| `spring.servlet.encoding.charset` | `goark.web.servlet.encoding.charset` |
-| `spring.servlet.encoding.force` | `goark.web.servlet.encoding.force` |
-| `spring.servlet.encoding.force-request` | `goark.web.servlet.encoding.force-request` |
-| `spring.servlet.encoding.force-response` | `goark.web.servlet.encoding.force-response` |
-| `server.servlet.encoding.enabled` | `goark.web.servlet.encoding.enabled` |
-| `server.servlet.encoding.charset` | `goark.web.servlet.encoding.charset` |
-| `server.servlet.encoding.force` | `goark.web.servlet.encoding.force` |
-| `server.servlet.encoding.force-request` | `goark.web.servlet.encoding.force-request` |
-| `server.servlet.encoding.force-response` | `goark.web.servlet.encoding.force-response` |
-| `spring.mvc.hiddenmethod.filter.enabled` | `goark.web.filters.hidden-method.enabled` |
-| `spring.mvc.formcontent.filter.enabled` | `goark.web.filters.form-content.enabled` |
 
 服务端监听、multipart 和 Servlet async 超时属性由默认包含的 `goark.dev/gbc-arkhos` 提供。
 

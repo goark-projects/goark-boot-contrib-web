@@ -17,45 +17,15 @@ import (
 )
 
 const (
-	propertySpringWebCORSEnabled               = "spring.web.cors.enabled"
-	propertySpringWebCORSAllowedOrigins        = "spring.web.cors.allowed-origins"
-	propertySpringWebCORSAllowedOriginPatterns = "spring.web.cors.allowed-origin-patterns"
-	propertySpringWebCORSAllowedMethods        = "spring.web.cors.allowed-methods"
-	propertySpringWebCORSAllowedHeaders        = "spring.web.cors.allowed-headers"
-	propertySpringWebCORSExposedHeaders        = "spring.web.cors.exposed-headers"
-	propertySpringWebCORSAllowCredentials      = "spring.web.cors.allow-credentials"
-	propertySpringWebCORSMaxAge                = "spring.web.cors.max-age"
-	propertySpringMVCCORSEnabled               = "spring.mvc.cors.enabled"
-	propertySpringMVCCORSAllowedOrigins        = "spring.mvc.cors.allowed-origins"
-	propertySpringMVCCORSAllowedOriginPatterns = "spring.mvc.cors.allowed-origin-patterns"
-	propertySpringMVCCORSAllowedMethods        = "spring.mvc.cors.allowed-methods"
-	propertySpringMVCCORSAllowedHeaders        = "spring.mvc.cors.allowed-headers"
-	propertySpringMVCCORSExposedHeaders        = "spring.mvc.cors.exposed-headers"
-	propertySpringMVCCORSAllowCredentials      = "spring.mvc.cors.allow-credentials"
-	propertySpringMVCCORSMaxAge                = "spring.mvc.cors.max-age"
-	propertySpringForwardedHeadersEnabled      = "server.forward-headers-strategy"
-	propertySpringServletEncodingEnabled       = "spring.servlet.encoding.enabled"
-	propertySpringServletEncodingCharset       = "spring.servlet.encoding.charset"
-	propertySpringServletEncodingForce         = "spring.servlet.encoding.force"
-	propertySpringServletEncodingForceRequest  = "spring.servlet.encoding.force-request"
-	propertySpringServletEncodingForceResponse = "spring.servlet.encoding.force-response"
-	propertyServerServletEncodingEnabled       = "server.servlet.encoding.enabled"
-	propertyServerServletEncodingCharset       = "server.servlet.encoding.charset"
-	propertyServerServletEncodingForce         = "server.servlet.encoding.force"
-	propertyServerServletEncodingForceRequest  = "server.servlet.encoding.force-request"
-	propertyServerServletEncodingForceResponse = "server.servlet.encoding.force-response"
-	propertySpringShallowETagEnabled           = "spring.web.shallow-etag.enabled"
-	propertySpringShallowETagMaxBodyBytes      = "spring.web.shallow-etag.max-body-bytes"
-	propertySpringHiddenMethodEnabled          = "spring.mvc.hiddenmethod.filter.enabled"
-	propertySpringFormContentEnabled           = "spring.mvc.formcontent.filter.enabled"
-	orderCharacterEncodingFilter               = -400
-	orderForwardedHeadersFilter                = -300
-	orderCORSFilter                            = -200
-	orderHiddenHTTPMethodFilter                = -100
-	orderFormContentFilter                     = -90
-	orderFlashMapFilter                        = -80
-	orderSessionAttributesFilter               = -70
-	orderShallowETagFilter                     = 100
+	propertyServerForwardHeadersStrategy = "server.forward-headers-strategy"
+	orderCharacterEncodingFilter         = -400
+	orderForwardedHeadersFilter          = -300
+	orderCORSFilter                      = -200
+	orderHiddenHTTPMethodFilter          = -100
+	orderFormContentFilter               = -90
+	orderFlashMapFilter                  = -80
+	orderSessionAttributesFilter         = -70
+	orderShallowETagFilter               = 100
 )
 
 type filterSettings struct {
@@ -305,7 +275,7 @@ func WithSessionAttributesFilterEnabled(enabled bool) Option {
 }
 
 func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error {
-	if value, ok := firstProperty(environment, PropertyCORSEnabled, propertySpringWebCORSEnabled, propertySpringMVCCORSEnabled); ok {
+	if value, ok := environment.GetProperty(PropertyCORSEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyCORSEnabled, value)
 		if err != nil {
 			return err
@@ -313,27 +283,27 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		s.filters.cors.enabled = enabled
 		s.filters.cors.enabledSet = true
 	}
-	if value, ok := firstProperty(environment, PropertyCORSAllowedOrigins, propertySpringWebCORSAllowedOrigins, propertySpringMVCCORSAllowedOrigins); ok {
+	if value, ok := environment.GetProperty(PropertyCORSAllowedOrigins); ok {
 		s.filters.cors.config.AllowedOrigins = splitStaticResourceList([]string{value})
 		enableCORSByConfiguration(&s.filters.cors)
 	}
-	if value, ok := firstProperty(environment, PropertyCORSAllowedOriginPatterns, propertySpringWebCORSAllowedOriginPatterns, propertySpringMVCCORSAllowedOriginPatterns); ok {
+	if value, ok := environment.GetProperty(PropertyCORSAllowedOriginPatterns); ok {
 		s.filters.cors.config.AllowedOriginPatterns = splitStaticResourceList([]string{value})
 		enableCORSByConfiguration(&s.filters.cors)
 	}
-	if value, ok := firstProperty(environment, PropertyCORSAllowedMethods, propertySpringWebCORSAllowedMethods, propertySpringMVCCORSAllowedMethods); ok {
+	if value, ok := environment.GetProperty(PropertyCORSAllowedMethods); ok {
 		s.filters.cors.config.AllowedMethods = splitStaticResourceList([]string{value})
 		enableCORSByConfiguration(&s.filters.cors)
 	}
-	if value, ok := firstProperty(environment, PropertyCORSAllowedHeaders, propertySpringWebCORSAllowedHeaders, propertySpringMVCCORSAllowedHeaders); ok {
+	if value, ok := environment.GetProperty(PropertyCORSAllowedHeaders); ok {
 		s.filters.cors.config.AllowedHeaders = splitStaticResourceList([]string{value})
 		enableCORSByConfiguration(&s.filters.cors)
 	}
-	if value, ok := firstProperty(environment, PropertyCORSExposedHeaders, propertySpringWebCORSExposedHeaders, propertySpringMVCCORSExposedHeaders); ok {
+	if value, ok := environment.GetProperty(PropertyCORSExposedHeaders); ok {
 		s.filters.cors.config.ExposedHeaders = splitStaticResourceList([]string{value})
 		enableCORSByConfiguration(&s.filters.cors)
 	}
-	if value, ok := firstProperty(environment, PropertyCORSAllowCredentials, propertySpringWebCORSAllowCredentials, propertySpringMVCCORSAllowCredentials); ok {
+	if value, ok := environment.GetProperty(PropertyCORSAllowCredentials); ok {
 		enabled, err := parseBoolProperty(PropertyCORSAllowCredentials, value)
 		if err != nil {
 			return err
@@ -341,7 +311,7 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		s.filters.cors.config.AllowCredentials = enabled
 		enableCORSByConfiguration(&s.filters.cors)
 	}
-	if value, ok := firstProperty(environment, PropertyCORSMaxAge, propertySpringWebCORSMaxAge, propertySpringMVCCORSMaxAge); ok {
+	if value, ok := environment.GetProperty(PropertyCORSMaxAge); ok {
 		maxAge, err := parseDurationProperty(PropertyCORSMaxAge, value)
 		if err != nil {
 			return err
@@ -355,23 +325,23 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 			return err
 		}
 		s.filters.forwardedHeaders.enabled = enabled
-	} else if value, ok := environment.GetProperty(propertySpringForwardedHeadersEnabled); ok {
+	} else if value, ok := environment.GetProperty(propertyServerForwardHeadersStrategy); ok {
 		s.filters.forwardedHeaders.enabled = strings.EqualFold(strings.TrimSpace(value), "framework")
 	}
-	if value, ok := firstProperty(environment, PropertyCharacterEncodingFilterEnabled, propertySpringServletEncodingEnabled, propertyServerServletEncodingEnabled); ok {
+	if value, ok := environment.GetProperty(PropertyCharacterEncodingFilterEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyCharacterEncodingFilterEnabled, value)
 		if err != nil {
 			return err
 		}
 		s.filters.characterEncoding.enabled = enabled
 	}
-	if value, ok := firstProperty(environment, PropertyCharacterEncoding, propertySpringServletEncodingCharset, propertyServerServletEncodingCharset); ok {
+	if value, ok := environment.GetProperty(PropertyCharacterEncoding); ok {
 		value = strings.TrimSpace(value)
 		if value != "" {
 			s.filters.characterEncoding.encoding = value
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyForceCharacterEncoding, propertySpringServletEncodingForce, propertyServerServletEncodingForce); ok {
+	if value, ok := environment.GetProperty(PropertyForceCharacterEncoding); ok {
 		force, err := parseBoolProperty(PropertyForceCharacterEncoding, value)
 		if err != nil {
 			return err
@@ -379,14 +349,14 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		s.filters.characterEncoding.forceRequest = force
 		s.filters.characterEncoding.forceResponse = force
 	}
-	if value, ok := firstProperty(environment, PropertyForceRequestCharacterEncoding, propertySpringServletEncodingForceRequest, propertyServerServletEncodingForceRequest); ok {
+	if value, ok := environment.GetProperty(PropertyForceRequestCharacterEncoding); ok {
 		force, err := parseBoolProperty(PropertyForceRequestCharacterEncoding, value)
 		if err != nil {
 			return err
 		}
 		s.filters.characterEncoding.forceRequest = force
 	}
-	if value, ok := firstProperty(environment, PropertyForceResponseCharacterEncoding, propertySpringServletEncodingForceResponse, propertyServerServletEncodingForceResponse); ok {
+	if value, ok := environment.GetProperty(PropertyForceResponseCharacterEncoding); ok {
 		force, err := parseBoolProperty(PropertyForceResponseCharacterEncoding, value)
 		if err != nil {
 			return err
@@ -399,12 +369,6 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 			return err
 		}
 		s.filters.shallowETag.enabled = enabled
-	} else if value, ok := environment.GetProperty(propertySpringShallowETagEnabled); ok {
-		enabled, err := parseBoolProperty(propertySpringShallowETagEnabled, value)
-		if err != nil {
-			return err
-		}
-		s.filters.shallowETag.enabled = enabled
 	}
 	if value, ok := environment.GetProperty(PropertyShallowETagMaxBodyBytes); ok {
 		size, err := parseInt64Property(PropertyShallowETagMaxBodyBytes, value)
@@ -412,21 +376,15 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 			return err
 		}
 		s.filters.shallowETag.maxBodyBytes = size
-	} else if value, ok := environment.GetProperty(propertySpringShallowETagMaxBodyBytes); ok {
-		size, err := parseInt64Property(propertySpringShallowETagMaxBodyBytes, value)
-		if err != nil {
-			return err
-		}
-		s.filters.shallowETag.maxBodyBytes = size
 	}
-	if value, ok := firstProperty(environment, PropertyHiddenHTTPMethodFilterEnabled, propertySpringHiddenMethodEnabled); ok {
+	if value, ok := environment.GetProperty(PropertyHiddenHTTPMethodFilterEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyHiddenHTTPMethodFilterEnabled, value)
 		if err != nil {
 			return err
 		}
 		s.filters.hiddenMethod.enabled = enabled
 	}
-	if value, ok := firstProperty(environment, PropertyFormContentFilterEnabled, propertySpringFormContentEnabled); ok {
+	if value, ok := environment.GetProperty(PropertyFormContentFilterEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyFormContentFilterEnabled, value)
 		if err != nil {
 			return err

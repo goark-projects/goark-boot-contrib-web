@@ -22,10 +22,11 @@ func TestAutoConfigure_whenModelNameInferred_shouldRenderTemplateThroughArkhos(t
 	templateDir := filepath.Join(resource, "templates", "accounts")
 	mkdir(t, templateDir)
 	writeFile(t, filepath.Join(resource, "app.yml"), `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	writeFile(t, filepath.Join(templateDir, "detail.html"), "<h1>{{.starterModelNameAccount.Name}}</h1>")
 	t.Chdir(root)

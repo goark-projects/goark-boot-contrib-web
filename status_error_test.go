@@ -18,10 +18,11 @@ import (
 func TestAutoConfigure_whenHandlerReturnsStatusError_shouldUseProblemDetailsStatus(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 	cause := errors.New("internal quota bucket")
 

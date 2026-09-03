@@ -120,27 +120,27 @@ const (
 	// PropertyServletContextPath 设置 Servlet 上下文路径。
 	PropertyServletContextPath = "server.servlet.context-path"
 	// PropertyServletMapping 设置 Servlet 映射模式。
-	PropertyServletMapping = "goark.web.servlet.mapping"
+	PropertyServletMapping = "goark.servlet.mapping"
 	// PropertyStaticResourcesEnabled 设置是否启用静态资源约定。
 	PropertyStaticResourcesEnabled = "goark.web.resources.static.enabled"
 	// PropertyStaticResourcesLocations 设置静态资源目录列表。
-	PropertyStaticResourcesLocations = "goark.web.resources.static.locations"
+	PropertyStaticResourcesLocations = "goark.web.resources.static-locations"
 	// PropertyStaticResourcesLocation 设置单个静态资源目录。
 	PropertyStaticResourcesLocation = "goark.web.resources.static.location"
 	// PropertyStaticResourcesPattern 设置静态资源 Servlet 映射。
-	PropertyStaticResourcesPattern = "goark.web.resources.static.pattern"
+	PropertyStaticResourcesPattern = "goark.mvc.static-path-pattern"
 	// PropertyStaticResourcesServletName 设置静态资源 Servlet 名称。
 	PropertyStaticResourcesServletName = "goark.web.resources.static.servlet-name"
 	// PropertyStaticResourcesWelcomeFiles 设置静态资源 welcome file 列表。
 	PropertyStaticResourcesWelcomeFiles = "goark.web.resources.static.welcome-files"
 	// PropertyStaticResourcesCacheControl 设置静态资源 Cache-Control 头。
-	PropertyStaticResourcesCacheControl = "goark.web.resources.static.cache-control"
+	PropertyStaticResourcesCacheControl = "goark.web.resources.cache.cache-control"
 	// PropertyStaticResourcesCacheMaxAge 设置静态资源 public max-age 缓存时间。
-	PropertyStaticResourcesCacheMaxAge = "goark.web.resources.static.cache.max-age"
+	PropertyStaticResourcesCacheMaxAge = "goark.web.resources.cache.cachecontrol.max-age"
 	// PropertyStaticResourceContentVersioningEnabled 设置是否启用内容哈希版本路径。
-	PropertyStaticResourceContentVersioningEnabled = "goark.web.resources.static.chain.content.enabled"
+	PropertyStaticResourceContentVersioningEnabled = "goark.web.resources.chain.strategy.content.enabled"
 	// PropertyStaticResourceFixedVersion 设置静态资源固定版本路径前缀。
-	PropertyStaticResourceFixedVersion = "goark.web.resources.static.chain.fixed.version"
+	PropertyStaticResourceFixedVersion = "goark.web.resources.chain.strategy.fixed.version"
 	// PropertyCORSEnabled 设置是否启用 CORS 过滤器。
 	PropertyCORSEnabled = "goark.web.cors.enabled"
 	// PropertyCORSAllowedOrigins 设置允许的 CORS Origin 列表。
@@ -160,47 +160,47 @@ const (
 	// PropertyForwardedHeadersEnabled 设置是否启用代理头过滤器。
 	PropertyForwardedHeadersEnabled = "goark.web.filters.forwarded-headers.enabled"
 	// PropertyCharacterEncodingFilterEnabled 设置是否启用字符集过滤器。
-	PropertyCharacterEncodingFilterEnabled = "goark.web.servlet.encoding.enabled"
+	PropertyCharacterEncodingFilterEnabled = "goark.servlet.encoding.enabled"
 	// PropertyCharacterEncoding 设置 Web 默认字符集。
-	PropertyCharacterEncoding = "goark.web.servlet.encoding.charset"
+	PropertyCharacterEncoding = "goark.servlet.encoding.charset"
 	// PropertyForceCharacterEncoding 设置是否同时强制请求和响应字符集。
-	PropertyForceCharacterEncoding = "goark.web.servlet.encoding.force"
+	PropertyForceCharacterEncoding = "goark.servlet.encoding.force"
 	// PropertyForceRequestCharacterEncoding 设置是否强制请求字符集。
-	PropertyForceRequestCharacterEncoding = "goark.web.servlet.encoding.force-request"
+	PropertyForceRequestCharacterEncoding = "goark.servlet.encoding.force-request"
 	// PropertyForceResponseCharacterEncoding 设置是否强制响应字符集。
-	PropertyForceResponseCharacterEncoding = "goark.web.servlet.encoding.force-response"
+	PropertyForceResponseCharacterEncoding = "goark.servlet.encoding.force-response"
 	// PropertyShallowETagEnabled 设置是否启用浅 ETag 过滤器。
-	PropertyShallowETagEnabled = "goark.web.filters.shallow-etag.enabled"
+	PropertyShallowETagEnabled = "goark.web.shallow-etag.enabled"
 	// PropertyShallowETagMaxBodyBytes 设置浅 ETag 最大缓存体积。
-	PropertyShallowETagMaxBodyBytes = "goark.web.filters.shallow-etag.max-body-bytes"
+	PropertyShallowETagMaxBodyBytes = "goark.web.shallow-etag.max-body-bytes"
 	// PropertyHiddenHTTPMethodFilterEnabled 设置是否启用隐藏 HTTP 方法过滤器。
-	PropertyHiddenHTTPMethodFilterEnabled = "goark.web.filters.hidden-method.enabled"
+	PropertyHiddenHTTPMethodFilterEnabled = "goark.mvc.hiddenmethod.filter.enabled"
 	// PropertyFormContentFilterEnabled 设置是否启用表单内容过滤器。
-	PropertyFormContentFilterEnabled = "goark.web.filters.form-content.enabled"
+	PropertyFormContentFilterEnabled = "goark.mvc.formcontent.filter.enabled"
 	// PropertyFormContentMaxBodyBytes 设置表单内容过滤器最大缓存体积。
 	PropertyFormContentMaxBodyBytes = "goark.web.filters.form-content.max-body-bytes"
 	// PropertyFlashMapFilterEnabled 设置是否启用 MVC FlashMap 过滤器。
-	PropertyFlashMapFilterEnabled = "goark.web.mvc.flash.enabled"
+	PropertyFlashMapFilterEnabled = "goark.mvc.flash.enabled"
 	// PropertyFlashMapTimeout 设置 MVC FlashMap 过期时间。
-	PropertyFlashMapTimeout = "goark.web.mvc.flash.timeout"
+	PropertyFlashMapTimeout = "goark.mvc.flash.timeout"
 	// PropertySessionAttributesFilterEnabled 设置是否启用 MVC SessionAttributes 过滤器。
-	PropertySessionAttributesFilterEnabled = "goark.web.mvc.session-attributes.enabled"
+	PropertySessionAttributesFilterEnabled = "goark.mvc.session-attributes.enabled"
 	// PropertyErrorEndpointEnabled 设置是否注册默认错误端点。
 	PropertyErrorEndpointEnabled = "goark.web.error.enabled"
 	// PropertyErrorPath 设置默认错误端点路径。
 	PropertyErrorPath = "goark.web.error.path"
 	// PropertyProblemDetailsEnabled 设置是否启用 Problem Details 错误响应。
-	PropertyProblemDetailsEnabled = "goark.web.problem-details.enabled"
+	PropertyProblemDetailsEnabled = "goark.mvc.problemdetails.enabled"
 	// PropertyViewTemplatesEnabled 设置是否启用 MVC 模板视图约定。
-	PropertyViewTemplatesEnabled = "goark.web.mvc.view.enabled"
+	PropertyViewTemplatesEnabled = "goark.mvc.view.enabled"
 	// PropertyViewTemplatesLocation 设置 MVC 模板根目录。
-	PropertyViewTemplatesLocation = "goark.web.mvc.view.templates.location"
+	PropertyViewTemplatesLocation = "goark.mvc.view.templates.location"
 	// PropertyViewTemplatePrefix 设置 MVC 模板逻辑视图名前缀。
-	PropertyViewTemplatePrefix = "goark.web.mvc.view.prefix"
+	PropertyViewTemplatePrefix = "goark.mvc.view.prefix"
 	// PropertyViewTemplateSuffix 设置 MVC 模板逻辑视图名后缀。
-	PropertyViewTemplateSuffix = "goark.web.mvc.view.suffix"
+	PropertyViewTemplateSuffix = "goark.mvc.view.suffix"
 	// PropertyViewTemplateContentType 设置 MVC 模板响应媒体类型。
-	PropertyViewTemplateContentType = "goark.web.mvc.view.content-type"
+	PropertyViewTemplateContentType = "goark.mvc.view.content-type"
 	// PropertyHTTPClientEnabled 设置是否注册默认 Web HTTP 客户端。
 	PropertyHTTPClientEnabled = "goark.web.client.enabled"
 	// PropertyHTTPClientBaseURL 设置默认 Web HTTP 客户端基础 URL。

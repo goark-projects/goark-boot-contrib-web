@@ -73,10 +73,11 @@ func (starterTokenConverter) Write(ctx *arkweb.Context, value any, mediaType str
 func TestAutoConfigure_whenMessageConverterBeanExists_shouldUseItForMVCBody(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -129,10 +130,11 @@ goark:
 func TestAutoConfigure_whenRequestBodyAdviceBeanExists_shouldApplyToMVCBindJSON(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -171,10 +173,11 @@ goark:
 func TestAutoConfigure_whenResponseAdviceBeanExists_shouldApplyToMVCResponseBody(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -212,10 +215,11 @@ goark:
 func TestAutoConfigure_whenFormBodyExists_shouldUseDefaultMessageConverters(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(

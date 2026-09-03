@@ -16,10 +16,9 @@ import (
 )
 
 const (
-	propertySpringProblemDetailsEnabled = "spring.mvc.problemdetails.enabled"
-	propertySpringErrorPath             = "server.error.path"
-	orderProblemDetailsMapper           = 10000
-	orderErrorEndpoint                  = 10010
+	propertyServerErrorPath   = "server.error.path"
+	orderProblemDetailsMapper = 10000
+	orderErrorEndpoint        = 10010
 )
 
 type errorHandlingSettings struct {
@@ -76,12 +75,12 @@ func (s *settings) applyErrorEnvironment(environment coreenv.Environment) error 
 		}
 		s.errorHandling.enabled = enabled
 	}
-	if value, ok := firstProperty(environment, PropertyErrorPath, propertySpringErrorPath); ok {
+	if value, ok := firstProperty(environment, PropertyErrorPath, propertyServerErrorPath); ok {
 		if err := WithErrorPath(value)(s); err != nil {
 			return err
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyProblemDetailsEnabled, propertySpringProblemDetailsEnabled); ok {
+	if value, ok := environment.GetProperty(PropertyProblemDetailsEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyProblemDetailsEnabled, value)
 		if err != nil {
 			return err

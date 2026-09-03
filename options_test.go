@@ -356,15 +356,14 @@ func TestNewSettings_whenOptionsExist_shouldOverrideEnvironment(t *testing.T) {
 	}
 }
 
-func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProperties(t *testing.T) {
+func TestNewSettings_whenStaticPropertiesExist_shouldApplyProperties(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		propertySpringStaticLocations:    "classpath:/static/,file:public",
-		propertySpringStaticPattern:      "/content/*",
-		propertySpringStaticCacheControl: "private, max-age=30",
-		propertySpringStaticCacheMaxAge:  "10m",
-		propertySpringStaticCachePeriod:  "5m",
-		propertySpringStaticContentChain: "true",
-		propertySpringStaticFixedVersion: "v2",
+		PropertyStaticResourcesLocations:               "classpath:/static/,file:public",
+		PropertyStaticResourcesPattern:                 "/content/*",
+		PropertyStaticResourcesCacheControl:            "private, max-age=30",
+		PropertyStaticResourcesCacheMaxAge:             "10m",
+		PropertyStaticResourceContentVersioningEnabled: "true",
+		PropertyStaticResourceFixedVersion:             "v2",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -379,17 +378,17 @@ func TestNewSettings_whenSpringStaticPropertiesExist_shouldApplyCompatibleProper
 		settings.staticResources.cacheControl != "private, max-age=30" ||
 		!settings.staticResources.contentVersion ||
 		settings.staticResources.fixedVersion != "v2" {
-		t.Fatalf("spring static settings = %+v", settings.staticResources)
+		t.Fatalf("static settings = %+v", settings.staticResources)
 	}
 }
 
-func TestNewSettings_whenSpringEncodingPropertiesExist_shouldApplyCompatibleProperties(t *testing.T) {
+func TestNewSettings_whenEncodingPropertiesExist_shouldApplyProperties(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		propertySpringServletEncodingEnabled:       "true",
-		propertySpringServletEncodingCharset:       "UTF-16",
-		propertySpringServletEncodingForce:         "false",
-		propertySpringServletEncodingForceRequest:  "true",
-		propertySpringServletEncodingForceResponse: "true",
+		PropertyCharacterEncodingFilterEnabled: "true",
+		PropertyCharacterEncoding:              "UTF-16",
+		PropertyForceCharacterEncoding:         "false",
+		PropertyForceRequestCharacterEncoding:  "true",
+		PropertyForceResponseCharacterEncoding: "true",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -401,13 +400,13 @@ func TestNewSettings_whenSpringEncodingPropertiesExist_shouldApplyCompatibleProp
 		settings.filters.characterEncoding.encoding != "UTF-16" ||
 		!settings.filters.characterEncoding.forceRequest ||
 		!settings.filters.characterEncoding.forceResponse {
-		t.Fatalf("spring character encoding settings = %+v", settings.filters.characterEncoding)
+		t.Fatalf("character encoding settings = %+v", settings.filters.characterEncoding)
 	}
 }
 
-func TestNewSettings_whenSpringFormContentPropertyExists_shouldApplyCompatibleProperty(t *testing.T) {
+func TestNewSettings_whenFormContentPropertyExists_shouldApplyProperty(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		propertySpringFormContentEnabled: "false",
+		PropertyFormContentFilterEnabled: "false",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -416,13 +415,13 @@ func TestNewSettings_whenSpringFormContentPropertyExists_shouldApplyCompatiblePr
 	}
 
 	if settings.filters.formContent.enabled {
-		t.Fatalf("spring form content settings = %+v", settings.filters.formContent)
+		t.Fatalf("form content settings = %+v", settings.filters.formContent)
 	}
 }
 
-func TestNewSettings_whenSpringHiddenMethodPropertyExists_shouldApplyCompatibleProperty(t *testing.T) {
+func TestNewSettings_whenHiddenMethodPropertyExists_shouldApplyProperty(t *testing.T) {
 	environment := newTestEnvironment(t, map[string]any{
-		propertySpringHiddenMethodEnabled: "true",
+		PropertyHiddenHTTPMethodFilterEnabled: "true",
 	})
 
 	settings, err := newSettings(environment, nil)
@@ -431,7 +430,7 @@ func TestNewSettings_whenSpringHiddenMethodPropertyExists_shouldApplyCompatibleP
 	}
 
 	if !settings.filters.hiddenMethod.enabled {
-		t.Fatalf("spring hidden method settings = %+v", settings.filters.hiddenMethod)
+		t.Fatalf("hidden method settings = %+v", settings.filters.hiddenMethod)
 	}
 }
 

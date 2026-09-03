@@ -19,10 +19,11 @@ type starterRequestMethodPayload struct {
 func TestAutoConfigure_whenControllerRequestMethodsExist_shouldServeCombinedMethodsThroughArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	handler := mvc.JSON(http.StatusOK, func(ctx *arkweb.Context) (starterRequestMethodPayload, error) {

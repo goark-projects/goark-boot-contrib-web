@@ -13,16 +13,6 @@ import (
 	"goark.dev/goark/web/static"
 )
 
-const (
-	propertySpringStaticLocations    = "spring.web.resources.static-locations"
-	propertySpringStaticPattern      = "spring.mvc.static-path-pattern"
-	propertySpringStaticCacheControl = "spring.web.resources.cache.cache-control"
-	propertySpringStaticCacheMaxAge  = "spring.web.resources.cache.cachecontrol.max-age"
-	propertySpringStaticCachePeriod  = "spring.web.resources.cache.period"
-	propertySpringStaticContentChain = "spring.web.resources.chain.strategy.content.enabled"
-	propertySpringStaticFixedVersion = "spring.web.resources.chain.strategy.fixed.version"
-)
-
 type staticResourceSettings struct {
 	enabled         bool
 	locations       []string
@@ -205,12 +195,12 @@ func staticResourceLocationsProperty(environment coreenv.Environment) (string, b
 	if value, ok := environment.GetProperty(PropertyStaticResourcesLocation); ok {
 		return value, true
 	}
-	return environment.GetProperty(propertySpringStaticLocations)
+	return "", false
 }
 
 func staticResourcePatternProperty(environment coreenv.Environment) (string, bool) {
 	if value, ok := environment.GetProperty(PropertyStaticResourcesPattern); ok {
 		return value, true
 	}
-	return environment.GetProperty(propertySpringStaticPattern)
+	return "", false
 }

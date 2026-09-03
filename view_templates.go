@@ -15,11 +15,7 @@ import (
 	mvcview "goark.dev/goark/web/mvc/view"
 )
 
-const (
-	propertySpringMVCViewPrefix = "spring.mvc.view.prefix"
-	propertySpringMVCViewSuffix = "spring.mvc.view.suffix"
-	orderViewInterceptor        = -50
-)
+const orderViewInterceptor = -50
 
 type viewTemplateSettings struct {
 	enabled     bool
@@ -51,12 +47,12 @@ func (s *settings) applyViewEnvironment(environment coreenv.Environment) error {
 			return err
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyViewTemplatePrefix, propertySpringMVCViewPrefix); ok {
+	if value, ok := environment.GetProperty(PropertyViewTemplatePrefix); ok {
 		if err := WithViewTemplatePrefix(value)(s); err != nil {
 			return err
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyViewTemplateSuffix, propertySpringMVCViewSuffix); ok {
+	if value, ok := environment.GetProperty(PropertyViewTemplateSuffix); ok {
 		if err := WithViewTemplateSuffix(value)(s); err != nil {
 			return err
 		}

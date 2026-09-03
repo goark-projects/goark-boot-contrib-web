@@ -24,10 +24,11 @@ func TestAutoConfigure_whenControllerRequestConditionsExist_shouldServeThroughAr
 
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	controller := mvc.NewRestController("conditions",
@@ -96,10 +97,11 @@ goark:
 func TestAutoConfigure_whenSamePathRequestConditionsExist_shouldDispatchThroughArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(
@@ -128,10 +130,11 @@ goark:
 func TestAutoConfigure_whenProducesConditionsOverlap_shouldPreserveSelectedProducesThroughArkhos(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
 goark:
   web:
-    server:
-      address: 127.0.0.1:0
 `)
 
 	app, err := boot.Run(

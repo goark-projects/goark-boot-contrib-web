@@ -348,11 +348,11 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 			return err
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyStaticResourcesCacheControl, propertySpringStaticCacheControl); ok {
+	if value, ok := environment.GetProperty(PropertyStaticResourcesCacheControl); ok {
 		if err := WithStaticResourceCacheControl(value)(s); err != nil {
 			return err
 		}
-	} else if value, ok := firstProperty(environment, PropertyStaticResourcesCacheMaxAge, propertySpringStaticCacheMaxAge, propertySpringStaticCachePeriod); ok {
+	} else if value, ok := environment.GetProperty(PropertyStaticResourcesCacheMaxAge); ok {
 		maxAge, err := parseDurationProperty(PropertyStaticResourcesCacheMaxAge, value)
 		if err != nil {
 			return err
@@ -361,7 +361,7 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 			return err
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyStaticResourceContentVersioningEnabled, propertySpringStaticContentChain); ok {
+	if value, ok := environment.GetProperty(PropertyStaticResourceContentVersioningEnabled); ok {
 		enabled, err := parseBoolProperty(PropertyStaticResourceContentVersioningEnabled, value)
 		if err != nil {
 			return err
@@ -370,7 +370,7 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 			return err
 		}
 	}
-	if value, ok := firstProperty(environment, PropertyStaticResourceFixedVersion, propertySpringStaticFixedVersion); ok {
+	if value, ok := environment.GetProperty(PropertyStaticResourceFixedVersion); ok {
 		if err := WithStaticResourceFixedVersion(value)(s); err != nil {
 			return err
 		}
