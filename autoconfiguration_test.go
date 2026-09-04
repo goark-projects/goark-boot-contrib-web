@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -80,6 +81,13 @@ goark:
 	server, err := goark.Get[*gbcarkhos.EmbeddedServer](t.Context(), appContext, gbcarkhos.BeanNameServer)
 	if err != nil {
 		t.Fatalf("resolve embedded server failed: %v", err)
+	}
+	host, _, err := net.SplitHostPort(server.Address())
+	if err != nil {
+		t.Fatalf("split embedded server address failed: %v", err)
+	}
+	if host != "127.0.0.1" {
+		t.Fatalf("server host = %q, want configured host", host)
 	}
 	body := requestUntilOK(t, server.URL()+"/healthz")
 	if body != `{"status":"UP"}` {

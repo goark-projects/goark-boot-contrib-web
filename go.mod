@@ -3,9 +3,9 @@ module goark.dev/gbc-web
 go 1.25
 
 require (
-	goark.dev/arkarta v0.0.2-0.20260903014600-5fb9454949e6
+	goark.dev/arkarta v0.0.3-0.20260903182219-45ebc42e54af
 	goark.dev/boot v0.0.0-20260903174742-ca13efcd3a24
-	goark.dev/gbc-arkhos v0.0.0-20260903130326-1b8c038ec1fa
+	goark.dev/gbc-arkhos v0.0.0-20260904033451-6e4b2d049887
 	goark.dev/goark v0.0.0-20260904010411-d90ef90bc395
 )
 
@@ -43,7 +43,7 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	goark.dev/arkhos v0.0.0-20260903114123-7f5757974998 // indirect
+	goark.dev/arkhos v0.0.0-20260903182318-ffbc091be55c // indirect
 	goark.dev/gbc-log v0.0.0-20260904032843-5972a947a031 // indirect
 	goark.dev/log v0.0.3-0.20260904031848-3a1f8d1056fe // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
