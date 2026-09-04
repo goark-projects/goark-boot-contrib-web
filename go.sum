@@ -99,10 +99,10 @@ goark.dev/boot v0.0.0-20260903174742-ca13efcd3a24 h1:812FJQSH2CrHI3BNQeZh2usXgdh
 goark.dev/boot v0.0.0-20260903174742-ca13efcd3a24/go.mod h1:1pXg47d2vpbH5LUMVhcOXXxUBPHSodBj/lZaAj89Q1Y=
 goark.dev/gbc-arkhos v0.0.0-20260903130326-1b8c038ec1fa h1:ehQI5Mk/c/2Fwm2NnSdHTz7ZGNC42G0MmrLCBoPmO9o=
 goark.dev/gbc-arkhos v0.0.0-20260903130326-1b8c038ec1fa/go.mod h1:Fgnp6EzsMs4+6Wy7STTazpszTroIDvGRC7J8VrQGzSo=
-goark.dev/gbc-log v0.0.0-20260903130207-3ccbc73f3834 h1:7yNL0hQY+LO1hrSHNnCmu52HepY30QRrcqfTMGjTekw=
-goark.dev/gbc-log v0.0.0-20260903130207-3ccbc73f3834/go.mod h1:81asfMucoRRFi0/mQnWrcWyQDjOGmhOPYX06bHPw0CM=
-goark.dev/goark v0.0.0-20260903134136-40d079352f43 h1:36TS4XjuGUd9ks1x9RHqspiNq+YRtgipV/z7BxXyzn4=
-goark.dev/goark v0.0.0-20260903134136-40d079352f43/go.mod h1:k12AuZNrxTiRYbgFLfM/G450VqGHxhgLywK6K3q87HY=
+goark.dev/gbc-log v0.0.0-20260904032843-5972a947a031 h1:ve0J6Wcdy3LqNUzQmS2xoFLXvIBjQ7WxSS+hx91obXo=
+goark.dev/gbc-log v0.0.0-20260904032843-5972a947a031/go.mod h1:CuUyU+ZNBlg1ry0wE/qp2ioSgu2lXofyC7ltujTar/I=
+goark.dev/goark v0.0.0-20260904010411-d90ef90bc395 h1:zf7ThcMmSTPGpKrlLqZJjMjiI65FpahwT5bkojCkknQ=
+goark.dev/goark v0.0.0-20260904010411-d90ef90bc395/go.mod h1:k12AuZNrxTiRYbgFLfM/G450VqGHxhgLywK6K3q87HY=
 goark.dev/log v0.0.3-0.20260904031848-3a1f8d1056fe h1:EY+iSlxdMX8SaBn7LJjNLqBzSmqu6VZW74hn1B3VIyk=
 goark.dev/log v0.0.3-0.20260904031848-3a1f8d1056fe/go.mod h1:NfI4hT6/vzLd8icTiegRgYNg8UKG4e+u3PJ6r5jSOLc=
 golang.org/x/arch v0.0.0-20210923205945-b76863e36670 h1:18EFjUmQOcUvxNYSkA6jO9VAiXCnxFY6NyDX0bHDmkU=
