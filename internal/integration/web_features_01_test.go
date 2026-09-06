@@ -3,7 +3,6 @@ package gbcweb_test
 import (
 	"context"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"strings"
 	"testing"
@@ -17,7 +16,7 @@ import (
 	"goark.dev/boot"
 	"goark.dev/boot/configdata"
 	gbcarkhos "goark.dev/gbc-arkhos"
-	"goark.dev/gbc-web"
+	gbcweb "goark.dev/gbc-web"
 	"goark.dev/goark"
 	"goark.dev/goark/container"
 	goweb "goark.dev/goark/web"
@@ -340,24 +339,4 @@ func requestUntilStatusWithClient(t *testing.T, client http.Client, build func()
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-}
-
-func starterMultipartBody(t *testing.T) (string, string) {
-	t.Helper()
-	var body strings.Builder
-	writer := multipart.NewWriter(&body)
-	if err := writer.WriteField("title", "avatar"); err != nil {
-		t.Fatalf("WriteField failed: %v", err)
-	}
-	part, err := writer.CreateFormFile("file", "profile.txt")
-	if err != nil {
-		t.Fatalf("CreateFormFile failed: %v", err)
-	}
-	if _, err := io.WriteString(part, "hello"); err != nil {
-		t.Fatalf("write part failed: %v", err)
-	}
-	if err := writer.Close(); err != nil {
-		t.Fatalf("writer close failed: %v", err)
-	}
-	return body.String(), writer.FormDataContentType()
 }

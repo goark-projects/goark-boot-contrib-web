@@ -13,7 +13,7 @@ import (
 	"goark.dev/boot"
 	"goark.dev/boot/configdata"
 	gbcarkhos "goark.dev/gbc-arkhos"
-	"goark.dev/gbc-web"
+	gbcweb "goark.dev/gbc-web"
 	"goark.dev/goark"
 	"goark.dev/goark/container"
 	goweb "goark.dev/goark/web"
