@@ -88,7 +88,7 @@ goark:
 			starterMessageConverterConfiguration{},
 			mvc.NewConfiguration("test.web.message-converter.mvc", mvc.NewController("tokens",
 				mvc.POST("/tokens", mvc.BindBody(http.StatusCreated, func(_ *arkweb.Context, input starterTokenInput) (starterTokenOutput, error) {
-					return starterTokenOutput{Value: input.Value}, nil
+					return starterTokenOutput(input), nil
 				}), mvc.WithConsumes(starterTokenMediaType), mvc.WithProduces(starterTokenMediaType)),
 			)),
 		),

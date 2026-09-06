@@ -598,7 +598,7 @@ goark:
 				return "forward:/target?from=source", nil
 			})),
 			mvc.GET("/target", mvc.ResponseBody(http.StatusAccepted, func(ctx *arkweb.Context) (string, error) {
-				forwardURI, ok := ctx.Request().Attribute(servlet.AttributeForwardRequestURI)
+				forwardURI, _ := ctx.Request().Attribute(servlet.AttributeForwardRequestURI)
 				uri, ok := forwardURI.(string)
 				if !ok {
 					return "missing-forward-attribute", nil
