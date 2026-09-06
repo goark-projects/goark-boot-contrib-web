@@ -46,9 +46,9 @@ require (
 	goark.dev/arkhos v0.0.0-20260903182318-ffbc091be55c // indirect
 	goark.dev/gbc-log v0.0.0-20260904032843-5972a947a031 // indirect
 	goark.dev/log v0.0.3-0.20260904031848-3a1f8d1056fe // indirect
-	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/arch v0.30.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
