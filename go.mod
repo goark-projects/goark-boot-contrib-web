@@ -1,6 +1,6 @@
 module goark.dev/gbc-web
 
-go 1.25
+go 1.26.0
 
 require (
 	goark.dev/arkarta v0.0.3-0.20260903182219-45ebc42e54af
