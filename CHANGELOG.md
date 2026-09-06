@@ -21,6 +21,10 @@ No unreleased changes.
 - Spring-style Web configuration properties under stable Goark namespaces.
 - Cross-platform CI with Go 1.26 tests, vet, and race gates.
 
+### Changed
+
+- Aligned all used `golang.org/x` modules with their latest stable releases.
+
 ### Fixed
 
 - Managed HTTP clients close connections in tests and application shutdown.
