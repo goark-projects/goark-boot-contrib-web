@@ -143,7 +143,8 @@ func TestNewSettings_whenStaticPropertiesExist_shouldApplyProperties(t *testing.
 	}
 
 	if len(settings.staticResources.locations) != 2 ||
-		settings.staticResources.locations[0] != "resource\\static" && settings.staticResources.locations[0] != "resource/static" ||
+		settings.staticResources.locations[0] != "resource\\static" &&
+			settings.staticResources.locations[0] != "resource/static" ||
 		settings.staticResources.locations[1] != "public" ||
 		settings.staticResources.pattern != "/content/*" ||
 		settings.staticResources.cacheControl != "private, max-age=30" ||
@@ -216,7 +217,11 @@ func TestNewSettings_whenFlashMapTimeoutPropertyIsBlank_shouldKeepDefault(t *tes
 	}
 
 	if settings.filters.flashMap.timeout != DefaultFlashMapTimeout {
-		t.Fatalf("flash map timeout = %s, want %s", settings.filters.flashMap.timeout, DefaultFlashMapTimeout)
+		t.Fatalf(
+			"flash map timeout = %s, want %s",
+			settings.filters.flashMap.timeout,
+			DefaultFlashMapTimeout,
+		)
 	}
 }
 
@@ -291,14 +296,18 @@ func TestRegisterHTTPClient_whenDisabledOrExistingBeans_shouldBackOff(t *testing
 	}
 
 	customBuilder := webclient.NewBuilder(webclient.WithDefaultHeader("X-Custom", "builder"))
-	if err := goarkcontainer.RegisterInstance[*webclient.Builder](registry, BeanNameHTTPClientBuilder, customBuilder); err != nil {
+	if err := goarkcontainer.RegisterInstance[*webclient.Builder](
+		registry, BeanNameHTTPClientBuilder, customBuilder,
+	); err != nil {
 		t.Fatalf("register custom builder failed: %v", err)
 	}
 	customClient, err := webclient.New(webclient.WithDefaultHeader("X-Custom", "client"))
 	if err != nil {
 		t.Fatalf("new custom client failed: %v", err)
 	}
-	if err := goarkcontainer.RegisterInstance[*webclient.Client](registry, BeanNameHTTPClient, customClient); err != nil {
+	if err := goarkcontainer.RegisterInstance[*webclient.Client](
+		registry, BeanNameHTTPClient, customClient,
+	); err != nil {
 		t.Fatalf("register custom client failed: %v", err)
 	}
 	if err := registerHTTPClient(registry, defaultHTTPClientSettings()); err != nil {
@@ -308,14 +317,22 @@ func TestRegisterHTTPClient_whenDisabledOrExistingBeans_shouldBackOff(t *testing
 	if err != nil {
 		t.Fatalf("new runtime container failed: %v", err)
 	}
-	resolvedBuilder, err := goarkcontainer.Get[*webclient.Builder](context.Background(), runtimeContainer, BeanNameHTTPClientBuilder)
+	resolvedBuilder, err := goarkcontainer.Get[*webclient.Builder](
+		context.Background(),
+		runtimeContainer,
+		BeanNameHTTPClientBuilder,
+	)
 	if err != nil {
 		t.Fatalf("resolve custom builder failed: %v", err)
 	}
 	if resolvedBuilder != customBuilder {
 		t.Fatal("default registration replaced custom builder")
 	}
-	resolvedClient, err := goarkcontainer.Get[*webclient.Client](context.Background(), runtimeContainer, BeanNameHTTPClient)
+	resolvedClient, err := goarkcontainer.Get[*webclient.Client](
+		context.Background(),
+		runtimeContainer,
+		BeanNameHTTPClient,
+	)
 	if err != nil {
 		t.Fatalf("resolve custom client failed: %v", err)
 	}

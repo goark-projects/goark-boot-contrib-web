@@ -52,9 +52,11 @@ func newTestEnvironment(t *testing.T, values map[string]any) coreenv.Environment
 
 func TestRegisterMVCConversion_whenConvertersExist_shouldAssembleService(t *testing.T) {
 	registry := goarkcontainer.NewRegistry()
-	if err := RegisterConverter(registry, "testStringIntConverter", convert.ConverterFunc[string, int](func(value string) (int, error) {
-		return len(value) + 10, nil
-	})); err != nil {
+	if err := RegisterConverter(
+		registry, "testStringIntConverter",
+		convert.ConverterFunc[string, int](func(value string) (int, error) {
+			return len(value) + 10, nil
+		})); err != nil {
 		t.Fatalf("RegisterConverter failed: %v", err)
 	}
 	if err := registerMVCConversion(registry); err != nil {
@@ -65,7 +67,11 @@ func TestRegisterMVCConversion_whenConvertersExist_shouldAssembleService(t *test
 		t.Fatalf("container.New failed: %v", err)
 	}
 
-	service, err := goarkcontainer.Get[*convert.Service](context.Background(), runtimeContainer, BeanNameConversionService)
+	service, err := goarkcontainer.Get[*convert.Service](
+		context.Background(),
+		runtimeContainer,
+		BeanNameConversionService,
+	)
 	if err != nil {
 		t.Fatalf("resolve conversion service failed: %v", err)
 	}
@@ -77,7 +83,11 @@ func TestRegisterMVCConversion_whenConvertersExist_shouldAssembleService(t *test
 		t.Fatalf("converted = %d, want 14", converted)
 	}
 
-	configurer, err := goarkcontainer.Get[goweb.Configurer](context.Background(), runtimeContainer, BeanNameConversionConfigurer)
+	configurer, err := goarkcontainer.Get[goweb.Configurer](
+		context.Background(),
+		runtimeContainer,
+		BeanNameConversionConfigurer,
+	)
 	if err != nil {
 		t.Fatalf("resolve conversion configurer failed: %v", err)
 	}
@@ -120,10 +130,16 @@ func (testRequestBodyAdvice) AfterRead(*arkweb.Context, message.ReadAdviceContex
 
 func TestRegisterMessageIO_whenConvertersExist_shouldAssembleReaderWriter(t *testing.T) {
 	registry := goarkcontainer.NewRegistry()
-	if err := RegisterMessageConverter(registry, "testMessageConverter", testMessageConverter{}, goarkcontainer.WithOrder(-100)); err != nil {
+	if err := RegisterMessageConverter(
+		registry, "testMessageConverter", testMessageConverter{},
+		goarkcontainer.WithOrder(-100),
+	); err != nil {
 		t.Fatalf("RegisterMessageConverter failed: %v", err)
 	}
-	if err := RegisterRequestBodyAdvice(registry, "testRequestBodyAdvice", testRequestBodyAdvice{}, goarkcontainer.WithOrder(-50)); err != nil {
+	if err := RegisterRequestBodyAdvice(
+		registry, "testRequestBodyAdvice", testRequestBodyAdvice{},
+		goarkcontainer.WithOrder(-50),
+	); err != nil {
 		t.Fatalf("RegisterRequestBodyAdvice failed: %v", err)
 	}
 	if err := registerMessageIO(registry); err != nil {
@@ -134,7 +150,11 @@ func TestRegisterMessageIO_whenConvertersExist_shouldAssembleReaderWriter(t *tes
 		t.Fatalf("container.New failed: %v", err)
 	}
 
-	writer, err := goarkcontainer.Get[message.Writer](context.Background(), runtimeContainer, BeanNameMessageWriter)
+	writer, err := goarkcontainer.Get[message.Writer](
+		context.Background(),
+		runtimeContainer,
+		BeanNameMessageWriter,
+	)
 	if err != nil {
 		t.Fatalf("resolve message writer failed: %v", err)
 	}
@@ -142,18 +162,29 @@ func TestRegisterMessageIO_whenConvertersExist_shouldAssembleReaderWriter(t *tes
 		t.Fatalf("first writer converter = %T, want testMessageConverter", writer.Converters()[0])
 	}
 
-	reader, err := goarkcontainer.Get[message.Reader](context.Background(), runtimeContainer, BeanNameMessageReader)
+	reader, err := goarkcontainer.Get[message.Reader](
+		context.Background(),
+		runtimeContainer,
+		BeanNameMessageReader,
+	)
 	if err != nil {
 		t.Fatalf("resolve message reader failed: %v", err)
 	}
 	if _, ok := reader.ReadConverters()[0].(testMessageConverter); !ok {
-		t.Fatalf("first reader converter = %T, want testMessageConverter", reader.ReadConverters()[0])
+		t.Fatalf(
+			"first reader converter = %T, want testMessageConverter",
+			reader.ReadConverters()[0],
+		)
 	}
 	if _, ok := reader.ReadAdvices()[0].(testRequestBodyAdvice); !ok {
 		t.Fatalf("first reader advice = %T, want testRequestBodyAdvice", reader.ReadAdvices()[0])
 	}
 
-	configurer, err := goarkcontainer.Get[goweb.Configurer](context.Background(), runtimeContainer, BeanNameMessageIOConfigurer)
+	configurer, err := goarkcontainer.Get[goweb.Configurer](
+		context.Background(),
+		runtimeContainer,
+		BeanNameMessageIOConfigurer,
+	)
 	if err != nil {
 		t.Fatalf("resolve message configurer failed: %v", err)
 	}
@@ -178,14 +209,22 @@ func TestRegisterWebValidator_whenNoCustomValidator_shouldRegisterDefaultConfigu
 		t.Fatalf("container.New failed: %v", err)
 	}
 
-	validator, err := goarkcontainer.Get[validation.Validator](context.Background(), runtimeContainer, BeanNameValidator)
+	validator, err := goarkcontainer.Get[validation.Validator](
+		context.Background(),
+		runtimeContainer,
+		BeanNameValidator,
+	)
 	if err != nil {
 		t.Fatalf("resolve default validator failed: %v", err)
 	}
 	if validator == nil {
 		t.Fatal("validator is nil")
 	}
-	configurer, err := goarkcontainer.Get[goweb.Configurer](context.Background(), runtimeContainer, BeanNameValidatorConfigurer)
+	configurer, err := goarkcontainer.Get[goweb.Configurer](
+		context.Background(),
+		runtimeContainer,
+		BeanNameValidatorConfigurer,
+	)
 	if err != nil {
 		t.Fatalf("resolve validator configurer failed: %v", err)
 	}
@@ -200,7 +239,9 @@ func TestRegisterWebValidator_whenNoCustomValidator_shouldRegisterDefaultConfigu
 
 func TestRegisterWebValidator_whenCustomValidatorExists_shouldSelectCustomValidator(t *testing.T) {
 	registry := goarkcontainer.NewRegistry()
-	if err := RegisterValidator(registry, "testRejectingValidator", testRejectingValidator{}); err != nil {
+	if err := RegisterValidator(
+		registry, "testRejectingValidator", testRejectingValidator{},
+	); err != nil {
 		t.Fatalf("RegisterValidator failed: %v", err)
 	}
 	if err := registerWebValidator(registry); err != nil {
@@ -211,14 +252,21 @@ func TestRegisterWebValidator_whenCustomValidatorExists_shouldSelectCustomValida
 		t.Fatalf("container.New failed: %v", err)
 	}
 
-	validator, err := goarkcontainer.GetByType[validation.Validator](context.Background(), runtimeContainer)
+	validator, err := goarkcontainer.GetByType[validation.Validator](
+		context.Background(),
+		runtimeContainer,
+	)
 	if err != nil {
 		t.Fatalf("resolve validator by type failed: %v", err)
 	}
 	if _, ok := validator.(testRejectingValidator); !ok {
 		t.Fatalf("validator = %T, want testRejectingValidator", validator)
 	}
-	configurer, err := goarkcontainer.Get[goweb.Configurer](context.Background(), runtimeContainer, BeanNameValidatorConfigurer)
+	configurer, err := goarkcontainer.Get[goweb.Configurer](
+		context.Background(),
+		runtimeContainer,
+		BeanNameValidatorConfigurer,
+	)
 	if err != nil {
 		t.Fatalf("resolve validator configurer failed: %v", err)
 	}
@@ -227,6 +275,9 @@ func TestRegisterWebValidator_whenCustomValidatorExists_shouldSelectCustomValida
 		t.Fatalf("ConfigureWeb failed: %v", err)
 	}
 	if _, ok := webRegistry.Validator().(testRejectingValidator); !ok {
-		t.Fatalf("web registry validator = %T, want testRejectingValidator", webRegistry.Validator())
+		t.Fatalf(
+			"web registry validator = %T, want testRejectingValidator",
+			webRegistry.Validator(),
+		)
 	}
 }

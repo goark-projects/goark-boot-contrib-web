@@ -59,7 +59,11 @@ func WithHTTPClientBaseURL(rawURL string) Option {
 func WithHTTPClientTimeout(timeout time.Duration) Option {
 	return func(settings *settings) error {
 		if timeout < 0 {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "web http client timeout %s must be >= 0", timeout)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"web http client timeout %s must be >= 0",
+				timeout,
+			)
 		}
 		if timeout > 0 {
 			settings.httpClient.timeout = timeout
@@ -72,7 +76,11 @@ func WithHTTPClientTimeout(timeout time.Duration) Option {
 func WithHTTPClientMaxResponseBytes(size int64) Option {
 	return func(settings *settings) error {
 		if size < -1 {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "web http client max response bytes %d must be >= -1", size)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"web http client max response bytes %d must be >= -1",
+				size,
+			)
 		}
 		settings.httpClient.maxResponseBytes = size
 		return nil
@@ -151,22 +159,35 @@ func registerHTTPClient(registry *goarkcontainer.Registry, settings httpClientSe
 	options := settings.clientOptions()
 	if _, exists := registry.Definition(BeanNameHTTPClientBuilder); !exists {
 		copied := append([]webclient.Option(nil), options...)
-		if err := goarkcontainer.Register[*webclient.Builder](registry, BeanNameHTTPClientBuilder, func(ctx context.Context, resolver goarkcontainer.Resolver) (*webclient.Builder, error) {
-			return newHTTPClientBuilder(ctx, resolver, copied)
-		}); err != nil {
+		if err := goarkcontainer.Register[*webclient.Builder](
+			registry, BeanNameHTTPClientBuilder,
+			func(
+				ctx context.Context,
+				resolver goarkcontainer.Resolver,
+			) (*webclient.Builder, error) {
+				return newHTTPClientBuilder(ctx, resolver, copied)
+			}); err != nil {
 			return err
 		}
 	}
 	if _, exists := registry.Definition(BeanNameHTTPClient); exists {
 		return nil
 	}
-	return goarkcontainer.Register[*webclient.Client](registry, BeanNameHTTPClient, func(ctx context.Context, resolver goarkcontainer.Resolver) (*webclient.Client, error) {
-		builder, err := goarkcontainer.Get[*webclient.Builder](ctx, resolver, BeanNameHTTPClientBuilder)
-		if err != nil {
-			return nil, err
-		}
-		return builder.Build()
-	})
+	return goarkcontainer.Register[*webclient.Client](
+		registry,
+		BeanNameHTTPClient,
+		func(ctx context.Context, resolver goarkcontainer.Resolver) (*webclient.Client, error) {
+			builder, err := goarkcontainer.Get[*webclient.Builder](
+				ctx,
+				resolver,
+				BeanNameHTTPClientBuilder,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return builder.Build()
+		},
+	)
 }
 
 func (s httpClientSettings) clientOptions() []webclient.Option {
@@ -179,7 +200,10 @@ func (s httpClientSettings) clientOptions() []webclient.Option {
 	}
 	options = append(options, webclient.WithMaxResponseBytes(s.maxResponseBytes))
 	for _, name := range sortedHeaderNames(s.defaultHeaders) {
-		options = append(options, webclient.WithDefaultHeader(name, s.defaultHeaders.Values(name)...))
+		options = append(
+			options,
+			webclient.WithDefaultHeader(name, s.defaultHeaders.Values(name)...),
+		)
 	}
 	options = append(options, s.options...)
 	return options
@@ -188,7 +212,11 @@ func (s httpClientSettings) clientOptions() []webclient.Option {
 func validateHTTPClientBaseURL(rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return arkerrors.Newf(arkerrors.CodeInvalidArgument, "web http client base url %q is invalid", rawURL)
+		return arkerrors.Newf(
+			arkerrors.CodeInvalidArgument,
+			"web http client base url %q is invalid",
+			rawURL,
+		)
 	}
 	return nil
 }
@@ -198,9 +226,14 @@ func parseHTTPClientDefaultHeaders(raw string) (http.Header, error) {
 	for _, item := range splitStaticResourceList([]string{raw}) {
 		name, value, ok := strings.Cut(item, "=")
 		if !ok {
-			return nil, arkerrors.Newf(arkerrors.CodeInvalidArgument, "web http client default header %q must use Name=Value", item)
+			return nil, arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"web http client default header %q must use Name=Value",
+				item,
+			)
 		}
-		if err := appendHTTPClientDefaultHeader(headers, name, []string{strings.TrimSpace(value)}); err != nil {
+		values := []string{strings.TrimSpace(value)}
+		if err := appendHTTPClientDefaultHeader(headers, name, values); err != nil {
 			return nil, err
 		}
 	}
@@ -210,11 +243,17 @@ func parseHTTPClientDefaultHeaders(raw string) (http.Header, error) {
 func appendHTTPClientDefaultHeader(headers http.Header, name string, values []string) error {
 	name = http.CanonicalHeaderKey(strings.TrimSpace(name))
 	if name == "" || len(values) == 0 || strings.ContainsAny(name, "\r\n") {
-		return arkerrors.New(arkerrors.CodeInvalidArgument, "web http client default header is invalid")
+		return arkerrors.New(
+			arkerrors.CodeInvalidArgument,
+			"web http client default header is invalid",
+		)
 	}
 	for _, value := range values {
 		if strings.ContainsAny(value, "\r\n") {
-			return arkerrors.New(arkerrors.CodeInvalidArgument, "web http client default header is invalid")
+			return arkerrors.New(
+				arkerrors.CodeInvalidArgument,
+				"web http client default header is invalid",
+			)
 		}
 		headers.Add(name, value)
 	}
@@ -224,10 +263,21 @@ func appendHTTPClientDefaultHeader(headers http.Header, name string, values []st
 func parseHTTPClientMaxResponseBytes(name string, value string) (int64, error) {
 	parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 	if err != nil {
-		return 0, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "invalid int64 property %s=%q", name, value)
+		return 0, arkerrors.Wrapf(
+			arkerrors.CodeInvalidArgument,
+			err,
+			"invalid int64 property %s=%q",
+			name,
+			value,
+		)
 	}
 	if parsed < -1 {
-		return 0, arkerrors.Newf(arkerrors.CodeInvalidArgument, "property %s=%q must be >= -1", name, value)
+		return 0, arkerrors.Newf(
+			arkerrors.CodeInvalidArgument,
+			"property %s=%q must be >= -1",
+			name,
+			value,
+		)
 	}
 	return parsed, nil
 }

@@ -52,7 +52,11 @@ func WithContextPath(path string) Option {
 			path = DefaultContextPath
 		}
 		if !strings.HasPrefix(path, "/") {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "web context path %q must start with /", path)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"web context path %q must start with /",
+				path,
+			)
 		}
 		config.contextPath = path
 		return nil
@@ -109,7 +113,10 @@ func WithStaticResourceServletName(name string) Option {
 	return func(config *settings) error {
 		name = strings.TrimSpace(name)
 		if name == "" {
-			return arkerrors.New(arkerrors.CodeInvalidArgument, "static resource servlet name is empty")
+			return arkerrors.New(
+				arkerrors.CodeInvalidArgument,
+				"static resource servlet name is empty",
+			)
 		}
 		config.staticResources.servletName = name
 		return nil
@@ -131,7 +138,10 @@ func WithStaticResourceCacheControl(value string) Option {
 	return func(config *settings) error {
 		value = strings.TrimSpace(value)
 		if strings.ContainsAny(value, "\r\n") {
-			return arkerrors.New(arkerrors.CodeInvalidArgument, "static resource cache-control is invalid")
+			return arkerrors.New(
+				arkerrors.CodeInvalidArgument,
+				"static resource cache-control is invalid",
+			)
 		}
 		config.staticResources.cacheControl = value
 		return nil
@@ -142,9 +152,16 @@ func WithStaticResourceCacheControl(value string) Option {
 func WithStaticResourceCacheMaxAge(maxAge time.Duration) Option {
 	return func(config *settings) error {
 		if maxAge < 0 {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "static resource cache max-age %s must be >= 0", maxAge)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"static resource cache max-age %s must be >= 0",
+				maxAge,
+			)
 		}
-		config.staticResources.cacheControl = "public, max-age=" + strconv.FormatInt(int64(maxAge/time.Second), 10)
+		config.staticResources.cacheControl = "public, max-age=" + strconv.FormatInt(
+			int64(maxAge/time.Second),
+			10,
+		)
 		return nil
 	}
 }
@@ -166,7 +183,12 @@ func WithStaticResourceFixedVersion(version string) Option {
 			return nil
 		}
 		if _, err := gowebstatic.FixedVersionPath(version, "asset.txt"); err != nil {
-			return arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "static resource fixed version %q is invalid", version)
+			return arkerrors.Wrapf(
+				arkerrors.CodeInvalidArgument,
+				err,
+				"static resource fixed version %q is invalid",
+				version,
+			)
 		}
 		config.staticResources.fixedVersion = version
 		return nil
@@ -214,7 +236,10 @@ func WithViewTemplateContentType(contentType string) Option {
 	return func(config *settings) error {
 		contentType = strings.TrimSpace(contentType)
 		if strings.ContainsAny(contentType, "\r\n") {
-			return arkerrors.New(arkerrors.CodeInvalidArgument, "view template content type is invalid")
+			return arkerrors.New(
+				arkerrors.CodeInvalidArgument,
+				"view template content type is invalid",
+			)
 		}
 		if contentType != "" {
 			config.viewTemplates.contentType = contentType

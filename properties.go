@@ -65,7 +65,8 @@ const (
 	// DefaultStaticResourcesLocation 是默认静态资源目录。
 	DefaultStaticResourcesLocation = "resource/static"
 	// DefaultStaticResourcesLocations 是默认静态资源目录列表，顺序对齐 Spring Boot 的常用资源约定。
-	DefaultStaticResourcesLocations = "resource/static,resource/public,resource/resources,resource/META-INF/resources"
+	DefaultStaticResourcesLocations = "resource/static,resource/public," +
+		"resource/resources,resource/META-INF/resources"
 	// DefaultStaticResourcesPattern 是默认静态资源 Servlet 映射。
 	DefaultStaticResourcesPattern = "/static/*"
 	// DefaultStaticResourcesServletName 是默认静态资源 Servlet 名称。
@@ -138,7 +139,8 @@ const (
 	// PropertyStaticResourcesCacheMaxAge 设置静态资源 public max-age 缓存时间。
 	PropertyStaticResourcesCacheMaxAge = "goark.web.resources.cache.cachecontrol.max-age"
 	// PropertyStaticResourceContentVersioningEnabled 设置是否启用内容哈希版本路径。
-	PropertyStaticResourceContentVersioningEnabled = "goark.web.resources.chain.strategy.content.enabled"
+	PropertyStaticResourceContentVersioningEnabled = "goark.web.resources.chain." +
+		"strategy.content.enabled"
 	// PropertyStaticResourceFixedVersion 设置静态资源固定版本路径前缀。
 	PropertyStaticResourceFixedVersion = "goark.web.resources.chain.strategy.fixed.version"
 	// PropertyCORSEnabled 设置是否启用 CORS 过滤器。

@@ -12,13 +12,20 @@ import (
 const orderMVCConversionConfigurer = -900
 
 // RegisterConverter 注册 MVC 参数转换器 Bean。
-func RegisterConverter(registry *goarkcontainer.Registry, name string, converter convert.Converter, options ...goarkcontainer.Option) error {
+func RegisterConverter(
+	registry *goarkcontainer.Registry,
+	name string,
+	converter convert.Converter,
+	options ...goarkcontainer.Option,
+) error {
 	return goarkcontainer.RegisterInstance[convert.Converter](registry, name, converter, options...)
 }
 
 func registerMVCConversion(registry *goarkcontainer.Registry) error {
 	if _, exists := registry.Definition(BeanNameConversionService); !exists {
-		if err := goarkcontainer.Register[*convert.Service](registry, BeanNameConversionService, newMVCConversionService); err != nil {
+		if err := goarkcontainer.Register[*convert.Service](
+			registry, BeanNameConversionService, newMVCConversionService,
+		); err != nil {
 			return err
 		}
 	}
@@ -33,7 +40,10 @@ func registerMVCConversion(registry *goarkcontainer.Registry) error {
 	)
 }
 
-func newMVCConversionService(ctx context.Context, resolver goarkcontainer.Resolver) (*convert.Service, error) {
+func newMVCConversionService(
+	ctx context.Context,
+	resolver goarkcontainer.Resolver,
+) (*convert.Service, error) {
 	converters, err := goarkcontainer.GetAllByType[convert.Converter](ctx, resolver)
 	if err != nil {
 		return nil, err
@@ -41,7 +51,10 @@ func newMVCConversionService(ctx context.Context, resolver goarkcontainer.Resolv
 	return convert.NewService(converters...)
 }
 
-func newMVCConversionConfigurer(ctx context.Context, resolver goarkcontainer.Resolver) (goweb.Configurer, error) {
+func newMVCConversionConfigurer(
+	ctx context.Context,
+	resolver goarkcontainer.Resolver,
+) (goweb.Configurer, error) {
 	service, err := goarkcontainer.Get[*convert.Service](ctx, resolver, BeanNameConversionService)
 	if err != nil {
 		return nil, err

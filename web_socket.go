@@ -30,7 +30,13 @@ type WebSocketFrameConnectionOption = gowebsocket.FrameConnectionOption
 type WebSocketSessionIDGenerator = gowebsocket.SessionIDGenerator
 
 // RegisterWebSocketEndpoint 注册 WebSocket Endpoint 配置器 Bean。
-func RegisterWebSocketEndpoint(registry *container.Registry, name string, pattern string, endpoint WebSocketEndpoint, options ...WebSocketOption) error {
+func RegisterWebSocketEndpoint(
+	registry *container.Registry,
+	name string,
+	pattern string,
+	endpoint WebSocketEndpoint,
+	options ...WebSocketOption,
+) error {
 	return gowebsocket.RegisterEndpoint(registry, name, pattern, endpoint, options...)
 }
 

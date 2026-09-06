@@ -83,13 +83,21 @@ func defaultFilterSettings() filterSettings {
 			forceRequest:  DefaultForceRequestCharacterEncoding,
 			forceResponse: DefaultForceResponseCharacterEncoding,
 		},
-		formContent: formContentSettings{enabled: DefaultFormContentFilterEnabled, maxBodyBytes: DefaultFormContentMaxBodyBytes},
-		flashMap:    flashMapSettings{enabled: DefaultFlashMapFilterEnabled, timeout: DefaultFlashMapTimeout},
+		formContent: formContentSettings{
+			enabled:      DefaultFormContentFilterEnabled,
+			maxBodyBytes: DefaultFormContentMaxBodyBytes,
+		},
+		flashMap: flashMapSettings{
+			enabled: DefaultFlashMapFilterEnabled,
+			timeout: DefaultFlashMapTimeout,
+		},
 		hiddenMethod: hiddenMethodSettings{
 			enabled: DefaultHiddenHTTPMethodFilterEnabled,
 		},
-		sessionAttributes: sessionAttributesSettings{enabled: DefaultSessionAttributesFilterEnabled},
-		shallowETag:       shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
+		sessionAttributes: sessionAttributesSettings{
+			enabled: DefaultSessionAttributesFilterEnabled,
+		},
+		shallowETag: shallowETagSettings{maxBodyBytes: DefaultShallowETagMaxBodyBytes},
 	}
 }
 
@@ -168,7 +176,9 @@ func WithForceResponseCharacterEncoding(force bool) Option {
 func WithCharacterEncodingFilterOptions(options ...gowebfilter.CharacterEncodingOption) Option {
 	copied := append([]gowebfilter.CharacterEncodingOption(nil), options...)
 	return func(settings *settings) error {
-		settings.filters.characterEncoding.options = append(settings.filters.characterEncoding.options, copied...)
+		settings.filters.characterEncoding.options = append(
+			settings.filters.characterEncoding.options,
+			copied...)
 		settings.filters.characterEncoding.enabled = true
 		return nil
 	}
@@ -186,7 +196,11 @@ func WithShallowETagEnabled(enabled bool) Option {
 func WithShallowETagMaxBodyBytes(size int64) Option {
 	return func(settings *settings) error {
 		if size < 0 {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "shallow etag max body bytes %d must be >= 0", size)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"shallow etag max body bytes %d must be >= 0",
+				size,
+			)
 		}
 		settings.filters.shallowETag.maxBodyBytes = size
 		return nil
@@ -205,7 +219,9 @@ func WithHiddenHTTPMethodFilterEnabled(enabled bool) Option {
 func WithHiddenHTTPMethodFilterOptions(options ...gowebfilter.HiddenMethodOption) Option {
 	copied := append([]gowebfilter.HiddenMethodOption(nil), options...)
 	return func(settings *settings) error {
-		settings.filters.hiddenMethod.options = append(settings.filters.hiddenMethod.options, copied...)
+		settings.filters.hiddenMethod.options = append(
+			settings.filters.hiddenMethod.options,
+			copied...)
 		settings.filters.hiddenMethod.enabled = true
 		return nil
 	}
@@ -223,7 +239,11 @@ func WithFormContentFilterEnabled(enabled bool) Option {
 func WithFormContentMaxBodyBytes(size int64) Option {
 	return func(settings *settings) error {
 		if size < 0 {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "form content max body bytes %d must be >= 0", size)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"form content max body bytes %d must be >= 0",
+				size,
+			)
 		}
 		settings.filters.formContent.maxBodyBytes = size
 		return nil
@@ -234,7 +254,9 @@ func WithFormContentMaxBodyBytes(size int64) Option {
 func WithFormContentFilterOptions(options ...gowebfilter.FormContentOption) Option {
 	copied := append([]gowebfilter.FormContentOption(nil), options...)
 	return func(settings *settings) error {
-		settings.filters.formContent.options = append(settings.filters.formContent.options, copied...)
+		settings.filters.formContent.options = append(
+			settings.filters.formContent.options,
+			copied...)
 		settings.filters.formContent.enabled = true
 		return nil
 	}
@@ -252,7 +274,11 @@ func WithFlashMapFilterEnabled(enabled bool) Option {
 func WithFlashMapTimeout(timeout time.Duration) Option {
 	return func(settings *settings) error {
 		if timeout <= 0 {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "flash map timeout %s must be > 0", timeout)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"flash map timeout %s must be > 0",
+				timeout,
+			)
 		}
 		settings.filters.flashMap.timeout = timeout
 		return nil

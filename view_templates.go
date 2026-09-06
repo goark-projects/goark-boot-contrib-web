@@ -87,26 +87,47 @@ func registerViewTemplates(registry *goarkcontainer.Registry, settings viewTempl
 	if err != nil {
 		return err
 	}
-	if err := goarkcontainer.RegisterInstance[mvcview.Resolver](registry, BeanNameViewResolver, resolver); err != nil {
+	if err := goarkcontainer.RegisterInstance[mvcview.Resolver](
+		registry, BeanNameViewResolver, resolver,
+	); err != nil {
 		return err
 	}
-	return goweb.RegisterConfigurer(registry, BeanNameViewInterceptor, viewTemplateConfigurer{resolver: resolver}, goarkcontainer.WithOrder(orderViewInterceptor))
+	return goweb.RegisterConfigurer(
+		registry,
+		BeanNameViewInterceptor,
+		viewTemplateConfigurer{resolver: resolver},
+		goarkcontainer.WithOrder(orderViewInterceptor),
+	)
 }
 
 func openViewTemplateRoot(location string) (fs.FS, error) {
 	path, err := filepath.Abs(strings.TrimSpace(location))
 	if err != nil {
-		return nil, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "failed to resolve view template location %q", location)
+		return nil, arkerrors.Wrapf(
+			arkerrors.CodeInvalidArgument,
+			err,
+			"failed to resolve view template location %q",
+			location,
+		)
 	}
 	info, err := os.Stat(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, fs.ErrNotExist
 	}
 	if err != nil {
-		return nil, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "failed to inspect view template location %q", location)
+		return nil, arkerrors.Wrapf(
+			arkerrors.CodeInvalidArgument,
+			err,
+			"failed to inspect view template location %q",
+			location,
+		)
 	}
 	if !info.IsDir() {
-		return nil, arkerrors.Newf(arkerrors.CodeInvalidArgument, "view template location %q is not a directory", location)
+		return nil, arkerrors.Newf(
+			arkerrors.CodeInvalidArgument,
+			"view template location %q is not a directory",
+			location,
+		)
 	}
 	return os.DirFS(path), nil
 }

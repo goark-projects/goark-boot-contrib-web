@@ -12,38 +12,79 @@ import (
 const orderMessageIOConfigurer = -1000
 
 // RegisterMessageConverter 注册同时参与请求读取和响应写出的消息转换器 Bean。
-func RegisterMessageConverter(registry *goarkcontainer.Registry, name string, converter message.HTTPConverter, options ...goarkcontainer.Option) error {
-	return goarkcontainer.RegisterInstance[message.HTTPConverter](registry, name, converter, options...)
+func RegisterMessageConverter(
+	registry *goarkcontainer.Registry,
+	name string,
+	converter message.HTTPConverter,
+	options ...goarkcontainer.Option,
+) error {
+	return goarkcontainer.RegisterInstance[message.HTTPConverter](
+		registry,
+		name,
+		converter,
+		options...)
 }
 
 // RegisterMessageReadConverter 注册请求体读取转换器 Bean。
-func RegisterMessageReadConverter(registry *goarkcontainer.Registry, name string, converter message.ReadConverter, options ...goarkcontainer.Option) error {
-	return goarkcontainer.RegisterInstance[message.ReadConverter](registry, name, converter, options...)
+func RegisterMessageReadConverter(
+	registry *goarkcontainer.Registry,
+	name string,
+	converter message.ReadConverter,
+	options ...goarkcontainer.Option,
+) error {
+	return goarkcontainer.RegisterInstance[message.ReadConverter](
+		registry,
+		name,
+		converter,
+		options...)
 }
 
 // RegisterMessageWriteConverter 注册响应体写出转换器 Bean。
-func RegisterMessageWriteConverter(registry *goarkcontainer.Registry, name string, converter message.Converter, options ...goarkcontainer.Option) error {
+func RegisterMessageWriteConverter(
+	registry *goarkcontainer.Registry,
+	name string,
+	converter message.Converter,
+	options ...goarkcontainer.Option,
+) error {
 	return goarkcontainer.RegisterInstance[message.Converter](registry, name, converter, options...)
 }
 
 // RegisterRequestBodyAdvice 注册请求体读取增强器 Bean。
-func RegisterRequestBodyAdvice(registry *goarkcontainer.Registry, name string, advice message.ReadAdvice, options ...goarkcontainer.Option) error {
+func RegisterRequestBodyAdvice(
+	registry *goarkcontainer.Registry,
+	name string,
+	advice message.ReadAdvice,
+	options ...goarkcontainer.Option,
+) error {
 	return goarkcontainer.RegisterInstance[message.ReadAdvice](registry, name, advice, options...)
 }
 
 // RegisterResponseAdvice 注册响应体写出增强器 Bean。
-func RegisterResponseAdvice(registry *goarkcontainer.Registry, name string, advice arkweb.ResponseAdvice, options ...goarkcontainer.Option) error {
-	return goarkcontainer.RegisterInstance[arkweb.ResponseAdvice](registry, name, advice, options...)
+func RegisterResponseAdvice(
+	registry *goarkcontainer.Registry,
+	name string,
+	advice arkweb.ResponseAdvice,
+	options ...goarkcontainer.Option,
+) error {
+	return goarkcontainer.RegisterInstance[arkweb.ResponseAdvice](
+		registry,
+		name,
+		advice,
+		options...)
 }
 
 func registerMessageIO(registry *goarkcontainer.Registry) error {
 	if _, exists := registry.Definition(BeanNameMessageWriter); !exists {
-		if err := goarkcontainer.Register[message.Writer](registry, BeanNameMessageWriter, newMessageWriter); err != nil {
+		if err := goarkcontainer.Register[message.Writer](
+			registry, BeanNameMessageWriter, newMessageWriter,
+		); err != nil {
 			return err
 		}
 	}
 	if _, exists := registry.Definition(BeanNameMessageReader); !exists {
-		if err := goarkcontainer.Register[message.Reader](registry, BeanNameMessageReader, newMessageReader); err != nil {
+		if err := goarkcontainer.Register[message.Reader](
+			registry, BeanNameMessageReader, newMessageReader,
+		); err != nil {
 			return err
 		}
 	}
@@ -58,7 +99,10 @@ func registerMessageIO(registry *goarkcontainer.Registry) error {
 	)
 }
 
-func newMessageWriter(ctx context.Context, resolver goarkcontainer.Resolver) (message.Writer, error) {
+func newMessageWriter(
+	ctx context.Context,
+	resolver goarkcontainer.Resolver,
+) (message.Writer, error) {
 	converters, err := goarkcontainer.GetAllByType[message.Converter](ctx, resolver)
 	if err != nil {
 		return message.Writer{}, err
@@ -66,7 +110,10 @@ func newMessageWriter(ctx context.Context, resolver goarkcontainer.Resolver) (me
 	return message.NewWriter(message.WithPrependedConverters(converters...)), nil
 }
 
-func newMessageReader(ctx context.Context, resolver goarkcontainer.Resolver) (message.Reader, error) {
+func newMessageReader(
+	ctx context.Context,
+	resolver goarkcontainer.Resolver,
+) (message.Reader, error) {
 	converters, err := goarkcontainer.GetAllByType[message.ReadConverter](ctx, resolver)
 	if err != nil {
 		return message.Reader{}, err
@@ -81,7 +128,10 @@ func newMessageReader(ctx context.Context, resolver goarkcontainer.Resolver) (me
 	), nil
 }
 
-func newMessageIOConfigurer(ctx context.Context, resolver goarkcontainer.Resolver) (goweb.Configurer, error) {
+func newMessageIOConfigurer(
+	ctx context.Context,
+	resolver goarkcontainer.Resolver,
+) (goweb.Configurer, error) {
 	reader, err := goarkcontainer.Get[message.Reader](ctx, resolver, BeanNameMessageReader)
 	if err != nil {
 		return nil, err

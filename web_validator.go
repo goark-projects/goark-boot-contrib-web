@@ -16,14 +16,26 @@ const (
 )
 
 // RegisterValidator 注册 Web 请求校验器 Bean。
-func RegisterValidator(registry *goarkcontainer.Registry, name string, validator validation.Validator, options ...goarkcontainer.Option) error {
+func RegisterValidator(
+	registry *goarkcontainer.Registry,
+	name string,
+	validator validation.Validator,
+	options ...goarkcontainer.Option,
+) error {
 	if util.IsNil(validator) {
 		return goweb.ErrNilValidator
 	}
 	validatorOptions := make([]goarkcontainer.Option, 0, len(options)+1)
-	validatorOptions = append(validatorOptions, goarkcontainer.WithPriority(customValidatorPriority))
+	validatorOptions = append(
+		validatorOptions,
+		goarkcontainer.WithPriority(customValidatorPriority),
+	)
 	validatorOptions = append(validatorOptions, options...)
-	return goarkcontainer.RegisterInstance[validation.Validator](registry, name, validator, validatorOptions...)
+	return goarkcontainer.RegisterInstance[validation.Validator](
+		registry,
+		name,
+		validator,
+		validatorOptions...)
 }
 
 func registerWebValidator(registry *goarkcontainer.Registry) error {
@@ -48,7 +60,10 @@ func registerWebValidator(registry *goarkcontainer.Registry) error {
 	)
 }
 
-func newWebValidatorConfigurer(ctx context.Context, resolver goarkcontainer.Resolver) (goweb.Configurer, error) {
+func newWebValidatorConfigurer(
+	ctx context.Context,
+	resolver goarkcontainer.Resolver,
+) (goweb.Configurer, error) {
 	validator, err := goarkcontainer.GetByType[validation.Validator](ctx, resolver)
 	if err != nil {
 		return nil, err

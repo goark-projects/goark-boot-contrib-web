@@ -31,7 +31,12 @@ func (s *settings) applyEnvironment(environment coreenv.Environment) error {
 	if value, ok := environment.GetProperty(PropertyStaticResourcesEnabled); ok {
 		enabled, err := strconv.ParseBool(strings.TrimSpace(value))
 		if err != nil {
-			return arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "invalid static resources enabled value %q", value)
+			return arkerrors.Wrapf(
+				arkerrors.CodeInvalidArgument,
+				err,
+				"invalid static resources enabled value %q",
+				value,
+			)
 		}
 		if err := WithStaticResourcesEnabled(enabled)(s); err != nil {
 			return err
@@ -227,7 +232,8 @@ func (s *settings) applyFilterEnvironment(environment coreenv.Environment) error
 		}
 		s.filters.flashMap.enabled = enabled
 	}
-	if value, ok := environment.GetProperty(PropertyFlashMapTimeout); ok && strings.TrimSpace(value) != "" {
+	if value, ok := environment.GetProperty(PropertyFlashMapTimeout); ok &&
+		strings.TrimSpace(value) != "" {
 		timeout, err := parseDurationProperty(PropertyFlashMapTimeout, value)
 		if err != nil {
 			return err
@@ -264,7 +270,13 @@ func firstProperty(environment coreenv.Environment, names ...string) (string, bo
 func parseBoolProperty(name string, value string) (bool, error) {
 	parsed, err := strconv.ParseBool(strings.TrimSpace(value))
 	if err != nil {
-		return false, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "invalid boolean property %s=%q", name, value)
+		return false, arkerrors.Wrapf(
+			arkerrors.CodeInvalidArgument,
+			err,
+			"invalid boolean property %s=%q",
+			name,
+			value,
+		)
 	}
 	return parsed, nil
 }
@@ -279,7 +291,13 @@ func parseDurationProperty(name string, value string) (time.Duration, error) {
 	}
 	parsed, err := time.ParseDuration(value)
 	if err != nil {
-		return 0, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "invalid duration property %s=%q", name, value)
+		return 0, arkerrors.Wrapf(
+			arkerrors.CodeInvalidArgument,
+			err,
+			"invalid duration property %s=%q",
+			name,
+			value,
+		)
 	}
 	return parsed, nil
 }
@@ -287,10 +305,21 @@ func parseDurationProperty(name string, value string) (time.Duration, error) {
 func parseInt64Property(name string, value string) (int64, error) {
 	parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 	if err != nil {
-		return 0, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "invalid int64 property %s=%q", name, value)
+		return 0, arkerrors.Wrapf(
+			arkerrors.CodeInvalidArgument,
+			err,
+			"invalid int64 property %s=%q",
+			name,
+			value,
+		)
 	}
 	if parsed < 0 {
-		return 0, arkerrors.Newf(arkerrors.CodeInvalidArgument, "property %s=%q must be >= 0", name, value)
+		return 0, arkerrors.Newf(
+			arkerrors.CodeInvalidArgument,
+			"property %s=%q must be >= 0",
+			name,
+			value,
+		)
 	}
 	return parsed, nil
 }

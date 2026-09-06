@@ -1,0 +1,353 @@
+package gbcweb_test
+
+import (
+	"context"
+	"io"
+	"mime"
+	"mime/multipart"
+	"net/http"
+	"net/textproto"
+	"strings"
+	"testing"
+
+	arkjson "goark.dev/arkarta/json"
+	arkweb "goark.dev/arkarta/web"
+	"goark.dev/boot"
+	"goark.dev/boot/configdata"
+	gbcweb "goark.dev/gbc-web"
+	"goark.dev/goark"
+	"goark.dev/goark/container"
+	goweb "goark.dev/goark/web"
+	"goark.dev/goark/web/cors"
+	"goark.dev/goark/web/mvc"
+)
+
+func TestAutoConfigure_whenWebFeatureContributorsExist_shouldServeThroughArkhos(t *testing.T) {
+	const contractMediaType = "application/vnd.goark.contract+json"
+
+	root := t.TempDir()
+	writeFile(t, root+"/app.yml", `
+server:
+  address: 127.0.0.1
+  port: 0
+goark:
+  web:
+`)
+
+	app, err := boot.Run(
+		t.Context(),
+		boot.WithConfigDataOptions(configdata.WithLocations(root)),
+		boot.WithAutoConfiguration(gbcweb.AutoConfigure()),
+		boot.WithConfiguration(
+			starterWebFeaturesConfiguration{},
+			mvc.NewConfiguration("test.web.features.mvc", mvc.NewController(
+				"files",
+				mvc.POST(
+					"/uploads",
+					mvc.BindMultipart(
+						http.StatusCreated,
+						func(_ *arkweb.Context, input starterUploadRequest) (map[string]string, error) {
+							file, err := input.File.Open()
+							if err != nil {
+								return nil, err
+							}
+							defer file.Close()
+							data, err := io.ReadAll(file)
+							if err != nil {
+								return nil, err
+							}
+							return map[string]string{
+								"title":    input.Title,
+								"filename": input.File.SubmittedFileName(),
+								"body":     string(data),
+							}, nil
+						},
+					),
+				),
+				mvc.GET(
+					"/reports/today",
+					mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
+						return goweb.Attachment(
+							"today.csv",
+							strings.NewReader("id,name\n1,goark\n"),
+							goweb.WithDownloadContentType("text/csv"),
+							goweb.WithDownloadContentLength(16),
+						), nil
+					}),
+				),
+				mvc.POST(
+					"/session-cookie",
+					mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
+						return goweb.NoBody(http.StatusNoContent).
+								WithResponseCookie(goweb.NewResponseCookie("sid", "abc").WithHTTPOnly(true)),
+							nil
+					}),
+				),
+				mvc.GET("/events", mvc.Handler(func(_ *arkweb.Context) (arkweb.Result, error) {
+					return goweb.SSE(func(_ context.Context, writer *goweb.SSEWriter) error {
+						return writer.Send(goweb.SSEEvent{
+							ID:   "boot-1",
+							Name: "ready",
+							Data: starterEventPayload{State: "UP"},
+						})
+					}), nil
+				})),
+				mvc.GET(
+					"/contracts",
+					mvc.JSON(http.StatusOK, func(*arkweb.Context) (starterEventPayload, error) {
+						return starterEventPayload{State: "NEGOTIATED"}, nil
+					}),
+					mvc.WithProduces(contractMediaType),
+					mvc.WithCrossOrigin(cors.Config{
+						AllowedOrigins: []string{"https://admin.example.com"},
+						AllowedHeaders: []string{"X-Request-ID"},
+						ExposedHeaders: []string{"X-Starter-Scoped-Interceptor"},
+					}),
+				),
+				mvc.GET(
+					"/api/v1/contracts",
+					mvc.JSON(http.StatusOK, func(*arkweb.Context) (starterEventPayload, error) {
+						return starterEventPayload{State: "API"}, nil
+					}),
+				),
+			)),
+		),
+	)
+	if err != nil {
+		t.Fatalf("boot run failed: %v", err)
+	}
+	defer closeApp(t, app)
+
+	serverURL := starterServerURL(t, app)
+	staticSnapshot := requestUntilStatusSnapshot(t, serverURL+"/assets/app.txt", http.StatusOK)
+	if staticSnapshot.body != "starter static" {
+		t.Fatalf("static body = %q", staticSnapshot.body)
+	}
+	if got := staticSnapshot.header.Get("X-Starter-Filter"); got != "hit" {
+		t.Fatalf("static X-Starter-Filter = %q, want hit", got)
+	}
+
+	uploadSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		body, contentType := starterMultipartBody(t)
+		request, err := http.NewRequestWithContext(
+			t.Context(),
+			http.MethodPost,
+			serverURL+"/uploads",
+			strings.NewReader(body),
+		)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Content-Type", contentType)
+		return request, nil
+	}, http.StatusCreated)
+	if uploadSnapshot.header.Get("X-Starter-Filter") != "hit" ||
+		uploadSnapshot.header.Get("X-Starter-Interceptor") != "hit" {
+		t.Fatalf("upload headers = %#v", uploadSnapshot.header)
+	}
+	var uploadPayload map[string]string
+	if err := arkjson.Unmarshal(nil, []byte(uploadSnapshot.body), &uploadPayload); err != nil {
+		t.Fatalf("upload json invalid: %v", err)
+	}
+	if uploadPayload["title"] != "avatar" || uploadPayload["filename"] != "profile.txt" ||
+		uploadPayload["body"] != "hello" {
+		t.Fatalf("upload payload = %#v", uploadPayload)
+	}
+
+	downloadSnapshot := requestUntilStatusSnapshot(t, serverURL+"/reports/today", http.StatusOK)
+	if downloadSnapshot.body != "id,name\n1,goark\n" {
+		t.Fatalf("download body = %q", downloadSnapshot.body)
+	}
+	if got := downloadSnapshot.header.Get("Content-Type"); got != "text/csv" {
+		t.Fatalf("download Content-Type = %q, want text/csv", got)
+	}
+	got := downloadSnapshot.header.Get("Content-Disposition")
+	if got != `attachment; filename=today.csv` {
+		t.Fatalf("download Content-Disposition = %q", got)
+	}
+
+	cookieSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		return http.NewRequestWithContext(
+			t.Context(),
+			http.MethodPost,
+			serverURL+"/session-cookie",
+			nil,
+		)
+	}, http.StatusNoContent)
+	if got := cookieSnapshot.header.Get("Set-Cookie"); got != "sid=abc; HttpOnly" {
+		t.Fatalf("session cookie = %q", got)
+	}
+
+	eventSnapshot := requestUntilStatusSnapshot(t, serverURL+"/events", http.StatusOK)
+	if got := eventSnapshot.header.Get("Content-Type"); got != "text/event-stream; charset=utf-8" {
+		t.Fatalf("event Content-Type = %q, want text/event-stream", got)
+	}
+	if got := eventSnapshot.header.Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("event Cache-Control = %q, want no-cache", got)
+	}
+	for _, fragment := range []string{
+		"id: boot-1\n",
+		"event: ready\n",
+		"data: {\"state\":\"UP\"}\n\n",
+	} {
+		if !strings.Contains(eventSnapshot.body, fragment) {
+			t.Fatalf("event body missing %q:\n%s", fragment, eventSnapshot.body)
+		}
+	}
+	if got := eventSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "" {
+		t.Fatalf("event scoped filter = %q, want empty", got)
+	}
+	if got := eventSnapshot.header.Get("X-Starter-Scoped-Interceptor"); got != "" {
+		t.Fatalf("event scoped interceptor = %q, want empty", got)
+	}
+
+	contractSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(
+			t.Context(),
+			http.MethodGet,
+			serverURL+"/contracts",
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", contractMediaType)
+		request.Header.Set("Origin", "https://admin.example.com")
+		return request, nil
+	}, http.StatusOK)
+	if got := contractSnapshot.header.Get("Content-Type"); got != contractMediaType {
+		t.Fatalf("contract Content-Type = %q, want %s", got, contractMediaType)
+	}
+	got = contractSnapshot.header.Get("Access-Control-Allow-Origin")
+	if got != "https://admin.example.com" {
+		t.Fatalf("contract CORS allow origin = %q", got)
+	}
+	got = contractSnapshot.header.Get("Access-Control-Expose-Headers")
+	if got != "X-Starter-Scoped-Interceptor" {
+		t.Fatalf("contract CORS exposed headers = %q", got)
+	}
+	if got := contractSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "hit" {
+		t.Fatalf("contract scoped filter = %q, want hit", got)
+	}
+	if got := contractSnapshot.header.Get("X-Starter-Scoped-Interceptor"); got != "hit" {
+		t.Fatalf("contract scoped interceptor = %q, want hit", got)
+	}
+	if contractSnapshot.body != `{"state":"NEGOTIATED"}` {
+		t.Fatalf("contract body = %q, want negotiated JSON", contractSnapshot.body)
+	}
+
+	apiContractSnapshot := requestUntilStatusSnapshot(
+		t,
+		serverURL+"/api/v1/contracts",
+		http.StatusOK,
+	)
+	if got := apiContractSnapshot.header.Get("X-Starter-Scoped-Filter"); got != "hit" {
+		t.Fatalf("api contract scoped filter = %q, want hit", got)
+	}
+	if got := apiContractSnapshot.header.Get("X-Starter-Scoped-Interceptor"); got != "hit" {
+		t.Fatalf("api contract scoped interceptor = %q, want hit", got)
+	}
+	if apiContractSnapshot.body != `{"state":"API"}` {
+		t.Fatalf("api contract body = %q, want API JSON", apiContractSnapshot.body)
+	}
+
+	preflightSnapshot := requestUntilStatusWith(t, func() (*http.Request, error) {
+		request, err := http.NewRequestWithContext(
+			t.Context(),
+			http.MethodOptions,
+			serverURL+"/contracts",
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Origin", "https://admin.example.com")
+		request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+		request.Header.Set("Access-Control-Request-Headers", "x-request-id")
+		return request, nil
+	}, http.StatusNoContent)
+	got = preflightSnapshot.header.Get("Access-Control-Allow-Origin")
+	if got != "https://admin.example.com" {
+		t.Fatalf("preflight CORS allow origin = %q", got)
+	}
+	if got := preflightSnapshot.header.Get("Access-Control-Allow-Methods"); got != "GET, HEAD" {
+		t.Fatalf("preflight CORS allow methods = %q", got)
+	}
+	if got := preflightSnapshot.header.Get("Access-Control-Allow-Headers"); got != "X-Request-ID" {
+		t.Fatalf("preflight CORS allow headers = %q", got)
+	}
+}
+
+func starterJSONRequestPartBody(
+	t testing.TB,
+	metadata string,
+	metadataContentType string,
+) (string, string) {
+	t.Helper()
+	var body strings.Builder
+	writer := multipart.NewWriter(&body)
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", mime.FormatMediaType("form-data", map[string]string{
+		"name":     "metadata",
+		"filename": "metadata.json",
+	}))
+	header.Set("Content-Type", metadataContentType)
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		t.Fatalf("CreatePart failed: %v", err)
+	}
+	if _, err := io.WriteString(part, metadata); err != nil {
+		t.Fatalf("write metadata part failed: %v", err)
+	}
+	file, err := writer.CreateFormFile("file", "profile.txt")
+	if err != nil {
+		t.Fatalf("CreateFormFile failed: %v", err)
+	}
+	if _, err := io.WriteString(file, "hello"); err != nil {
+		t.Fatalf("write file part failed: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("writer close failed: %v", err)
+	}
+	return body.String(), writer.FormDataContentType()
+}
+
+func TestRegisterWebSocketEndpoint_whenEndpointExists_shouldRegisterConfigurerBean(t *testing.T) {
+	registry := container.NewRegistry()
+	if err := gbcweb.RegisterWebSocketEndpoint(
+		registry, "chatSocket", "/ws/chat", gbcweb.WebSocketEndpointFunc{},
+	); err != nil {
+		t.Fatalf("RegisterWebSocketEndpoint failed: %v", err)
+	}
+	if _, exists := registry.Definition("chatSocket"); !exists {
+		t.Fatal("websocket configurer bean should be registered")
+	}
+}
+
+func (c starterMessageConverterConfiguration) Register(
+	ctx context.Context,
+	registry *container.Registry,
+) error {
+	return c.RegisterWithContext(ctx, goark.NewConfigurationContext(nil, registry))
+}
+
+type starterMultipartBindingPayload struct {
+	Valid    bool   `json:"valid"`
+	Field    string `json:"field"`
+	Filename string `json:"filename"`
+}
+
+type starterBindingSearchCriteria struct {
+	Name string `form:"name" json:"name" arkarta:"required"`
+	Page int    `form:"page" json:"page"`
+}
+
+type starterAdviceTenantID struct {
+	value string
+}
+
+func (starterAttributeConfiguration) Order() int {
+	return 0
+}
+
+type starterDependentErrorMapperConfiguration struct{}

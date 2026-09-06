@@ -52,7 +52,11 @@ func WithErrorPath(path string) Option {
 	return func(settings *settings) error {
 		path = strings.TrimSpace(path)
 		if path == "" || !strings.HasPrefix(path, "/") {
-			return arkerrors.Newf(arkerrors.CodeInvalidArgument, "web error path %q must start with /", path)
+			return arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"web error path %q must start with /",
+				path,
+			)
 		}
 		settings.errorHandling.path = path
 		return nil
@@ -90,16 +94,27 @@ func (s *settings) applyErrorEnvironment(environment coreenv.Environment) error 
 	return nil
 }
 
-func registerErrorHandling(registry *goarkcontainer.Registry, settings errorHandlingSettings) error {
+func registerErrorHandling(
+	registry *goarkcontainer.Registry,
+	settings errorHandlingSettings,
+) error {
 	if settings.problemDetailsEnabled {
-		if err := goweb.RegisterFallbackErrorMapper(registry, BeanNameProblemDetailsMapper, problem.NewMapper(), goarkcontainer.WithOrder(orderProblemDetailsMapper)); err != nil {
+		if err := goweb.RegisterFallbackErrorMapper(
+			registry, BeanNameProblemDetailsMapper, problem.NewMapper(),
+			goarkcontainer.WithOrder(orderProblemDetailsMapper),
+		); err != nil {
 			return err
 		}
 	}
 	if !settings.enabled {
 		return nil
 	}
-	return goweb.RegisterConfigurer(registry, BeanNameErrorEndpoint, errorEndpointConfigurer{path: settings.path}, goarkcontainer.WithOrder(orderErrorEndpoint))
+	return goweb.RegisterConfigurer(
+		registry,
+		BeanNameErrorEndpoint,
+		errorEndpointConfigurer{path: settings.path},
+		goarkcontainer.WithOrder(orderErrorEndpoint),
+	)
 }
 
 func (c errorEndpointConfigurer) ConfigureWeb(ctx context.Context, registry *goweb.Registry) error {

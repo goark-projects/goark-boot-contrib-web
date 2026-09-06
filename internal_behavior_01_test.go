@@ -15,14 +15,42 @@ func TestModuleMetadata(t *testing.T) {
 		{name: "repository", got: Repository, want: "goark-boot-contrib-web"},
 		{name: "starter id", got: StarterID, want: "goark.boot.contrib.web"},
 		{name: "deployment bean", got: BeanNameDeployment, want: "goark.boot.web.deployment"},
-		{name: "message reader bean", got: BeanNameMessageReader, want: "goark.boot.web.messageReader"},
-		{name: "message writer bean", got: BeanNameMessageWriter, want: "goark.boot.web.messageWriter"},
-		{name: "message io configurer bean", got: BeanNameMessageIOConfigurer, want: "goark.boot.web.messageIOConfigurer"},
+		{
+			name: "message reader bean",
+			got:  BeanNameMessageReader,
+			want: "goark.boot.web.messageReader",
+		},
+		{
+			name: "message writer bean",
+			got:  BeanNameMessageWriter,
+			want: "goark.boot.web.messageWriter",
+		},
+		{
+			name: "message io configurer bean",
+			got:  BeanNameMessageIOConfigurer,
+			want: "goark.boot.web.messageIOConfigurer",
+		},
 		{name: "validator bean", got: BeanNameValidator, want: "goark.boot.web.validator"},
-		{name: "validator configurer bean", got: BeanNameValidatorConfigurer, want: "goark.boot.web.validatorConfigurer"},
-		{name: "conversion service bean", got: BeanNameConversionService, want: "goark.boot.web.mvc.conversionService"},
-		{name: "conversion configurer bean", got: BeanNameConversionConfigurer, want: "goark.boot.web.mvc.conversionConfigurer"},
-		{name: "http client builder bean", got: BeanNameHTTPClientBuilder, want: "goark.boot.web.clientBuilder"},
+		{
+			name: "validator configurer bean",
+			got:  BeanNameValidatorConfigurer,
+			want: "goark.boot.web.validatorConfigurer",
+		},
+		{
+			name: "conversion service bean",
+			got:  BeanNameConversionService,
+			want: "goark.boot.web.mvc.conversionService",
+		},
+		{
+			name: "conversion configurer bean",
+			got:  BeanNameConversionConfigurer,
+			want: "goark.boot.web.mvc.conversionConfigurer",
+		},
+		{
+			name: "http client builder bean",
+			got:  BeanNameHTTPClientBuilder,
+			want: "goark.boot.web.clientBuilder",
+		},
 		{name: "http client bean", got: BeanNameHTTPClient, want: "goark.boot.web.client"},
 	}
 
@@ -54,7 +82,8 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 	if !settings.staticResources.enabled ||
 		len(settings.staticResources.locations) != len(defaultLocations) ||
 		settings.staticResources.locations[0] != "resource/static" ||
-		settings.staticResources.locations[len(settings.staticResources.locations)-1] != "resource/META-INF/resources" ||
+		settings.staticResources.locations[len(settings.staticResources.locations)-1] !=
+			"resource/META-INF/resources" ||
 		settings.staticResources.pattern != DefaultStaticResourcesPattern ||
 		settings.staticResources.contentVersion != DefaultStaticResourceContentVersioningEnabled ||
 		settings.staticResources.fixedVersion != DefaultStaticResourceFixedVersion {
@@ -66,7 +95,8 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.shallowETag.enabled {
 		t.Fatalf("filter defaults = %+v", settings.filters)
 	}
-	if !settings.filters.flashMap.enabled || settings.filters.flashMap.timeout != DefaultFlashMapTimeout {
+	if !settings.filters.flashMap.enabled ||
+		settings.filters.flashMap.timeout != DefaultFlashMapTimeout {
 		t.Fatalf("flash map defaults = %+v", settings.filters.flashMap)
 	}
 	if !settings.filters.sessionAttributes.enabled {
@@ -78,7 +108,8 @@ func TestNewSettings_whenEnvironmentIsNil_shouldUseWebDefaults(t *testing.T) {
 		settings.filters.characterEncoding.forceResponse {
 		t.Fatalf("character encoding defaults = %+v", settings.filters.characterEncoding)
 	}
-	if !settings.filters.formContent.enabled || settings.filters.formContent.maxBodyBytes != DefaultFormContentMaxBodyBytes {
+	if !settings.filters.formContent.enabled ||
+		settings.filters.formContent.maxBodyBytes != DefaultFormContentMaxBodyBytes {
 		t.Fatalf("form content defaults = %+v", settings.filters.formContent)
 	}
 	if !settings.viewTemplates.enabled ||
@@ -128,7 +159,11 @@ func TestNewSettings_whenOnlyLegacyWebApplicationNameExists_shouldIgnoreIt(t *te
 		t.Fatalf("new settings failed: %v", err)
 	}
 	if settings.applicationName != DefaultApplicationName {
-		t.Fatalf("application name = %q, want default %q", settings.applicationName, DefaultApplicationName)
+		t.Fatalf(
+			"application name = %q, want default %q",
+			settings.applicationName,
+			DefaultApplicationName,
+		)
 	}
 }
 
@@ -227,7 +262,8 @@ func TestNewSettings_whenEnvironmentPropertiesExist_shouldApplyWebProperties(t *
 		t.Fatalf("character encoding settings = %+v", settings.filters.characterEncoding)
 	}
 	if !settings.viewTemplates.enabled ||
-		settings.viewTemplates.location != "resource\\templates" && settings.viewTemplates.location != "resource/templates" ||
+		settings.viewTemplates.location != "resource\\templates" &&
+			settings.viewTemplates.location != "resource/templates" ||
 		settings.viewTemplates.prefix != "pages" ||
 		settings.viewTemplates.suffix != ".tmpl" ||
 		settings.viewTemplates.contentType != "text/plain; charset=utf-8" {

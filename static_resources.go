@@ -36,7 +36,10 @@ func defaultStaticResourceSettings() staticResourceSettings {
 	}
 }
 
-func registerStaticResources(registry *goarkcontainer.Registry, settings staticResourceSettings) error {
+func registerStaticResources(
+	registry *goarkcontainer.Registry,
+	settings staticResourceSettings,
+) error {
 	if !settings.enabled {
 		return nil
 	}
@@ -67,7 +70,11 @@ func registerStaticResources(registry *goarkcontainer.Registry, settings staticR
 	return static.Register(registry, BeanNameStaticResources, settings.pattern, root, options...)
 }
 
-func registerStaticResourceURLProvider(registry *goarkcontainer.Registry, settings staticResourceSettings, root fs.FS) error {
+func registerStaticResourceURLProvider(
+	registry *goarkcontainer.Registry,
+	settings staticResourceSettings,
+	root fs.FS,
+) error {
 	if _, exists := registry.Definition(BeanNameStaticResourceURLProvider); exists {
 		return nil
 	}
@@ -84,7 +91,11 @@ func registerStaticResourceURLProvider(registry *goarkcontainer.Registry, settin
 	if err != nil {
 		return err
 	}
-	return goarkcontainer.RegisterInstance[static.ResourceURLProvider](registry, BeanNameStaticResourceURLProvider, provider)
+	return goarkcontainer.RegisterInstance[static.ResourceURLProvider](
+		registry,
+		BeanNameStaticResourceURLProvider,
+		provider,
+	)
 }
 
 func openStaticResourceRoots(locations []string) ([]fs.FS, error) {
@@ -92,17 +103,31 @@ func openStaticResourceRoots(locations []string) ([]fs.FS, error) {
 	for _, location := range locations {
 		path, err := filepath.Abs(strings.TrimPrefix(strings.TrimSpace(location), "file:"))
 		if err != nil {
-			return nil, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "failed to resolve static resource location %q", location)
+			return nil, arkerrors.Wrapf(
+				arkerrors.CodeInvalidArgument,
+				err,
+				"failed to resolve static resource location %q",
+				location,
+			)
 		}
 		info, err := os.Stat(path)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
 		if err != nil {
-			return nil, arkerrors.Wrapf(arkerrors.CodeInvalidArgument, err, "failed to inspect static resource location %q", location)
+			return nil, arkerrors.Wrapf(
+				arkerrors.CodeInvalidArgument,
+				err,
+				"failed to inspect static resource location %q",
+				location,
+			)
 		}
 		if !info.IsDir() {
-			return nil, arkerrors.Newf(arkerrors.CodeInvalidArgument, "static resource location %q is not a directory", location)
+			return nil, arkerrors.Newf(
+				arkerrors.CodeInvalidArgument,
+				"static resource location %q is not a directory",
+				location,
+			)
 		}
 		roots = append(roots, os.DirFS(path))
 	}
@@ -153,7 +178,10 @@ func normalizeStaticResourceLocations(locations []string) ([]string, error) {
 		out = append(out, normalizeStaticResourceLocation(item))
 	}
 	if len(out) == 0 {
-		return nil, arkerrors.New(arkerrors.CodeInvalidArgument, "static resource locations are empty")
+		return nil, arkerrors.New(
+			arkerrors.CodeInvalidArgument,
+			"static resource locations are empty",
+		)
 	}
 	return out, nil
 }
