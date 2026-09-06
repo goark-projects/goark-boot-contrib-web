@@ -339,3 +339,7 @@ type starterRequestMethodPayload struct {
 }
 
 type starterResponseAdviceConfiguration struct{}
+
+func (starterDependentErrorMapperConfiguration) Name() string {
+	return "test.web.dependent-error-mapper"
+}

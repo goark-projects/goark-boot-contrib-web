@@ -126,13 +126,13 @@ func TestAutoConfigure_whenMVCHandlerInterceptorsExist_shouldServeThroughArkhos(
 	}
 	configuration := mvc.NewConfiguration(
 		"test.mvc.handler-interceptors", mvc.NewRestController("accounts",
-		mvc.GET("/api/accounts", mvc.Text(http.StatusOK, func(_ *arkweb.Context) (string, error) {
-			return "accounts", nil
-		})),
-		mvc.GET("/api/public/ping", mvc.Text(http.StatusOK, func(_ *arkweb.Context) (string, error) {
-			return "pong", nil
-		})),
-	),
+			mvc.GET("/api/accounts", mvc.Text(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+				return "accounts", nil
+			})),
+			mvc.GET("/api/public/ping", mvc.Text(http.StatusOK, func(_ *arkweb.Context) (string, error) {
+				return "pong", nil
+			})),
+		),
 	).
 		WithHandlerInterceptors(mvc.HandlerInterceptorFuncs{
 			PreHandleFunc: func(ctx *arkweb.Context) (bool, error) {
@@ -290,8 +290,8 @@ func (starterConversionConfiguration) RegisterWithContext(
 	if err := gbcweb.RegisterConverter(
 		config.Registry(), "testStringIntConverter",
 		convert.ConverterFunc[string, int](func(value string) (int, error) {
-		return len(value) + 100, nil
-	})); err != nil {
+			return len(value) + 100, nil
+		})); err != nil {
 		return err
 	}
 	return gbcweb.RegisterConverter(

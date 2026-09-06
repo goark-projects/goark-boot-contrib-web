@@ -282,11 +282,11 @@ func (starterHTTPClientCustomizerConfiguration) RegisterWithContext(
 				ctx context.Context,
 				builder *webclient.Builder,
 			) (*webclient.Builder, error) {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		return builder.DefaultHeader("X-Chain", "first").DefaultCookieValue("phase", "first"), nil
-	}), container.WithOrder(-100)); err != nil {
+				if err := ctx.Err(); err != nil {
+					return nil, err
+				}
+				return builder.DefaultHeader("X-Chain", "first").DefaultCookieValue("phase", "first"), nil
+			}), container.WithOrder(-100)); err != nil {
 		return err
 	}
 	return gbcweb.RegisterHTTPClientBuilderCustomizer(

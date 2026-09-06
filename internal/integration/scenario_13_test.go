@@ -123,9 +123,9 @@ func TestAutoConfigure_whenControllerAdviceMessageAdviceExists_shouldServeThroug
 		},
 	).WithResponseAdvice(goweb.ResponseAdviceFunc(
 		func(ctx *arkweb.Context, result arkweb.Result) (arkweb.Result, error) {
-		ctx.Response().Header().Set("X-Controller-Advice", "response-advised")
-		return result, nil
-	}))
+			ctx.Response().Header().Set("X-Controller-Advice", "response-advised")
+			return result, nil
+		}))
 	app, err := boot.Run(
 		t.Context(),
 		boot.WithAutoConfiguration(gbcweb.AutoConfigure(

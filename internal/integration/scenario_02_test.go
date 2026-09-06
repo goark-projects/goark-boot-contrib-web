@@ -176,7 +176,7 @@ func TestAutoConfigure_whenConvertersExist_shouldBindMVCRequestParameters(t *tes
 	indexedSnapshot := requestUntilStatusSnapshot(t, starterServerURL(t, app)+"/search/indexed?"+
 		"owners[0].name=ada&owners[0].level=admin&owners[0].aliases[0]=lead&"+
 		"owners[1].name=linus&owners[1].level=kernel&"+
-			"owners[1].aliases[0]=maintainer&page=xy",
+		"owners[1].aliases[0]=maintainer&page=xy",
 		http.StatusOK,
 	)
 	var indexedPayload starterIndexedSearchPayload

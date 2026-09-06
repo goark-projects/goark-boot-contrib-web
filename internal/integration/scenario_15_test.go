@@ -25,6 +25,7 @@ import (
 	"goark.dev/goark/web/mvc"
 	"goark.dev/goark/web/static"
 )
+
 func TestAutoConfigure_whenControllerAdviceInitBinderExists_shouldUseScopedConvertersThroughArkhos(
 	t *testing.T,
 ) {
@@ -234,9 +235,9 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(
 	if err := goweb.RegisterInterceptor(
 		config.Registry(), "testInterceptor", goweb.InterceptorFunc(
 			func(ctx *arkweb.Context, next arkweb.Handler) (arkweb.Result, error) {
-		ctx.Response().Header().Set("X-Starter-Interceptor", "hit")
-		return next.Handle(ctx)
-	})); err != nil {
+				ctx.Response().Header().Set("X-Starter-Interceptor", "hit")
+				return next.Handle(ctx)
+			})); err != nil {
 		return err
 	}
 	if err := goweb.RegisterFilter(
@@ -247,9 +248,9 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(
 				res servlet.Response,
 				chain servlet.Chain,
 			) error {
-		res.Header().Set("X-Starter-Filter", "hit")
-		return chain.Next(ctx, req, res)
-	})); err != nil {
+				res.Header().Set("X-Starter-Filter", "hit")
+				return chain.Next(ctx, req, res)
+			})); err != nil {
 		return err
 	}
 	interceptorMapping, err := goweb.NewInterceptorMapping(
@@ -261,9 +262,9 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(
 	if err := goweb.RegisterMappedInterceptor(
 		config.Registry(), "testScopedInterceptor", goweb.InterceptorFunc(
 			func(ctx *arkweb.Context, next arkweb.Handler) (arkweb.Result, error) {
-		ctx.Response().Header().Set("X-Starter-Scoped-Interceptor", "hit")
-		return next.Handle(ctx)
-	}), interceptorMapping); err != nil {
+				ctx.Response().Header().Set("X-Starter-Scoped-Interceptor", "hit")
+				return next.Handle(ctx)
+			}), interceptorMapping); err != nil {
 		return err
 	}
 	filterMapping, err := goweb.NewFilterMapping(goweb.WithFilterPathPatterns("/**/contracts"))
@@ -278,9 +279,9 @@ func (starterWebFeaturesConfiguration) RegisterWithContext(
 				res servlet.Response,
 				chain servlet.Chain,
 			) error {
-		res.Header().Set("X-Starter-Scoped-Filter", "hit")
-		return chain.Next(ctx, req, res)
-	}), filterMapping); err != nil {
+				res.Header().Set("X-Starter-Scoped-Filter", "hit")
+				return chain.Next(ctx, req, res)
+			}), filterMapping); err != nil {
 		return err
 	}
 	return static.Register(config.Registry(), "testStaticResources", "/assets/*", fstest.MapFS{
@@ -343,10 +344,6 @@ func stringValue(value any) string {
 type starterIndexedSearchCriteria struct {
 	Owners []starterIndexedSearchOwner `form:"owners"`
 	Page   int                         `form:"page"`
-}
-
-func (starterDependentErrorMapperConfiguration) Name() string {
-	return "test.web.dependent-error-mapper"
 }
 
 type starterAdvisedInput struct {
