@@ -4,11 +4,16 @@ import (
 	"context"
 
 	servletcontainer "goark.dev/arkarta/servlet/container"
+	"goark.dev/arkarta/servlet/session"
 	"goark.dev/boot"
 	gbcarkhos "goark.dev/gbc-arkhos"
 	goarkcontainer "goark.dev/goark/container"
 	appcontext "goark.dev/goark/context"
 	goweb "goark.dev/goark/web"
+	gowebcors "goark.dev/goark/web/cors"
+	gowebfilter "goark.dev/goark/web/filter"
+	mvcflash "goark.dev/goark/web/mvc/flash"
+	mvcsessionattrs "goark.dev/goark/web/mvc/sessionattrs"
 )
 
 // AutoConfigure 创建 Web 自动配置，并默认包含 Arkhos 嵌入式容器。
@@ -112,4 +117,87 @@ func hasConfiguration(app *appcontext.ApplicationContext, name string) bool {
 		}
 	}
 	return false
+}
+
+func registerWebFilters(registry *goarkcontainer.Registry, settings filterSettings) error {
+	mvcSessionManager := mvcFilterSessionManager(settings)
+	if settings.characterEncoding.enabled {
+		options := append([]gowebfilter.CharacterEncodingOption{
+			gowebfilter.WithCharacterEncoding(settings.characterEncoding.encoding),
+			gowebfilter.WithForceRequestEncoding(settings.characterEncoding.forceRequest),
+			gowebfilter.WithForceResponseEncoding(settings.characterEncoding.forceResponse),
+		}, settings.characterEncoding.options...)
+		if err := goweb.RegisterFilter(registry, BeanNameCharacterEncodingFilter, gowebfilter.CharacterEncoding(
+			options...,
+		), goarkcontainer.WithOrder(orderCharacterEncodingFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.forwardedHeaders.enabled {
+		if err := goweb.RegisterFilter(registry, BeanNameForwardedHeadersFilter, gowebfilter.ForwardedHeaders(), goarkcontainer.WithOrder(orderForwardedHeadersFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.cors.enabled {
+		filter, err := gowebcors.New(settings.cors.config)
+		if err != nil {
+			return err
+		}
+		if err := goweb.RegisterFilter(registry, BeanNameCORSFilter, filter, goarkcontainer.WithOrder(orderCORSFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.hiddenMethod.enabled {
+		if err := goweb.RegisterFilter(registry, BeanNameHiddenHTTPMethodFilter, gowebfilter.HiddenHTTPMethod(
+			settings.hiddenMethod.options...,
+		), goarkcontainer.WithOrder(orderHiddenHTTPMethodFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.formContent.enabled {
+		options := append([]gowebfilter.FormContentOption{
+			gowebfilter.WithFormContentMaxBodyBytes(settings.formContent.maxBodyBytes),
+		}, settings.formContent.options...)
+		if err := goweb.RegisterFilter(registry, BeanNameFormContentFilter, gowebfilter.FormContent(
+			options...,
+		), goarkcontainer.WithOrder(orderFormContentFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.flashMap.enabled {
+		filter, err := mvcflash.NewSessionFilter(
+			mvcSessionManager,
+			mvcflash.WithTimeout(settings.flashMap.timeout),
+		)
+		if err != nil {
+			return err
+		}
+		if err := goweb.RegisterFilter(registry, BeanNameFlashMapFilter, filter, goarkcontainer.WithOrder(orderFlashMapFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.sessionAttributes.enabled {
+		filter, err := mvcsessionattrs.NewSessionFilter(mvcSessionManager)
+		if err != nil {
+			return err
+		}
+		if err := goweb.RegisterFilter(registry, BeanNameSessionAttributesFilter, filter, goarkcontainer.WithOrder(orderSessionAttributesFilter)); err != nil {
+			return err
+		}
+	}
+	if settings.shallowETag.enabled {
+		if err := goweb.RegisterFilter(registry, BeanNameShallowETagFilter, gowebfilter.ShallowETag(
+			gowebfilter.WithMaxBodyBytes(settings.shallowETag.maxBodyBytes),
+		), goarkcontainer.WithOrder(orderShallowETagFilter)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func mvcFilterSessionManager(settings filterSettings) session.Manager {
+	if !settings.flashMap.enabled && !settings.sessionAttributes.enabled {
+		return nil
+	}
+	return session.NewMemoryManager()
 }
